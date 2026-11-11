@@ -10,7 +10,7 @@
 <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="CashUp">
-<script>window.MQ_CONFIG={"signup":{"formAction":"","nameEntry":"","emailEntry":"","consentEntry":""},"contactEmail":"","firebase":{"apiKey":"AIzaSyCpb_iYWQ6e1wRFC1dlgEmYuPmN73jrgss","authDomain":"cashup-fd1f6.firebaseapp.com","projectId":"cashup-fd1f6","appId":"1:423422095607:web:ec201814ee38547a8863f2"}};</script>
+<script>window.MQ_CONFIG={"signup":{"formAction":"","nameEntry":"","emailEntry":"","consentEntry":""},"contactEmail":"","firebase":{"apiKey":"AIzaSyCpb_iYWQ6e1wRFC1dlgEmYuPmN73jrgss","authDomain":"cashup-fd1f6.firebaseapp.com","projectId":"cashup-fd1f6","appId":"1:423422095607:web:ec201814ee38547a8863f2"},"scanEndpoint":""};</script>
 
 <meta name="theme-color" content="#0C2D27">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19988,8 +19988,9 @@ function BalanceForm({ d, onDone }) {
 defs[26]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PRICE_SOURCES = exports.BANKING_PROVIDERS = void 0;
+exports.PRICE_SOURCES = exports.BANKING_PROVIDERS = exports.smartScanConsent = void 0;
 exports.getRecognizer = getRecognizer;
+exports.getCloudRecognizer = getCloudRecognizer;
 exports.getLocalOcr = getLocalOcr;
 exports.parseReceiptText = parseReceiptText;
 exports.getAiRecognizer = getAiRecognizer;
@@ -20006,9 +20007,81 @@ async function useCap(name) {
         return null;
     }
 }
-/** Best available recognizer: Claude (inside claude.ai) → on-device OCR (public site) → none. */
+/** Best available recognizer: Claude (inside claude.ai) → smart cloud scan (public site) → on-device OCR → none. */
 async function getRecognizer() {
-    return (await getAiRecognizer()) || getLocalOcr();
+    return (await getAiRecognizer()) || getCloudRecognizer() || getLocalOcr();
+}
+// ---------- Smart cloud scan (CashUp's own server → Claude). Opt-in per user; image is not stored. ----------
+const CONSENT_KEY = 'cashup:smartScanConsent';
+exports.smartScanConsent = {
+    get: () => { try {
+        const v = localStorage.getItem(CONSENT_KEY);
+        return v === null ? null : v === '1';
+    }
+    catch {
+        return null;
+    } },
+    set: (v) => { try {
+        localStorage.setItem(CONSENT_KEY, v ? '1' : '0');
+    }
+    catch { /* ignore */ } },
+};
+const CATS = ['groceries', 'restaurants', 'health', 'shopping', 'entertainment', 'transport', 'utilities', 'other'];
+function normalizeAi(v) {
+    const items = Array.isArray(v?.items) ? v.items.map((i) => ({
+        name: String(i.name || ''), qty: Number(i.qty) || 1, unitPrice: Math.abs(Number(i.unitPrice) || 0), discount: Math.abs(Number(i.discount) || 0),
+        categoryId: CATS.includes(i.category) ? i.category : 'other', size: String(i.size || ''), uncertain: !!i.uncertain,
+    })) : [];
+    return {
+        store: String(v?.store || ''), date: /^\d{4}-\d{2}-\d{2}$/.test(v?.date || '') ? v.date : '', items,
+        total: Math.abs(Number(v?.total) || 0), tax: v?.tax === null || v?.tax === undefined || v?.tax === '' ? null : Number(v.tax),
+        uncertainFields: Array.isArray(v?.uncertainFields) ? v.uncertainFields : [], notes: String(v?.notes || ''),
+    };
+}
+async function blobToJpegBase64(b, max = 1600, q = 0.85) {
+    const url = URL.createObjectURL(b);
+    try {
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+        const r = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * r);
+        c.height = Math.round(img.height * r);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        return c.toDataURL('image/jpeg', q).split(',')[1];
+    }
+    finally {
+        URL.revokeObjectURL(url);
+    }
+}
+function getCloudRecognizer() {
+    const ep = window.MQ_CONFIG?.scanEndpoint;
+    if (!ep || typeof fetch === 'undefined')
+        return null;
+    return {
+        id: 'cloud-ai', label: 'סריקה חכמה', local: false,
+        async recognize(image, onProgress) {
+            onProgress?.(0.2, 'uploading');
+            const data = await blobToJpegBase64(image);
+            onProgress?.(0.5, 'analyzing');
+            let res;
+            try {
+                res = await fetch(ep, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: data, mediaType: 'image/jpeg' }) });
+            }
+            catch {
+                const e = new Error('offline');
+                e.code = 'offline';
+                throw e;
+            }
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok || j.error) {
+                const e = new Error(j.error || 'ai_error');
+                e.code = j.error || 'ai_error';
+                throw e;
+            }
+            onProgress?.(1, 'done');
+            return normalizeAi(j);
+        },
+    };
 }
 // ---------- On-device OCR (Tesseract, runs entirely in the user's browser) ----------
 const TESS_URL = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
@@ -20040,7 +20113,11 @@ function getLocalOcr() {
             const worker = await T.createWorker('heb+eng', 1, { logger: (m) => { if (onProgress && typeof m.progress === 'number')
                     onProgress(m.progress, m.status || ''); } });
             try {
-                const { data } = await worker.recognize(image);
+                try {
+                    await worker.setParameters({ tessedit_pageseg_mode: '4', preserve_interword_spaces: '1' });
+                }
+                catch { /* older versions */ }
+                const { data } = await worker.recognize(await prepForOcr(image));
                 return parseReceiptText(String(data.text || ''));
             }
             finally {
@@ -20052,13 +20129,66 @@ function getLocalOcr() {
         },
     };
 }
+/** Grayscale, scale to OCR-friendly width and stretch contrast – thermal receipts are faint and low-contrast. */
+async function prepForOcr(b) {
+    try {
+        const url = URL.createObjectURL(b);
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+        URL.revokeObjectURL(url);
+        const target = Math.min(2400, Math.max(1500, img.width));
+        const r = target / img.width;
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * r);
+        c.height = Math.round(img.height * r);
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+        const d = ctx.getImageData(0, 0, c.width, c.height), px = d.data, hist = new Array(256).fill(0);
+        for (let i = 0; i < px.length; i += 4) {
+            const g = (px[i] * 299 + px[i + 1] * 587 + px[i + 2] * 114) / 1000 | 0;
+            px[i] = g;
+            hist[g]++;
+        }
+        const n = px.length / 4;
+        let acc = 0, lo = 0, hi = 255;
+        for (let g = 0; g < 256; g++) {
+            acc += hist[g];
+            if (acc > n * 0.02) {
+                lo = g;
+                break;
+            }
+        }
+        acc = 0;
+        for (let g = 255; g >= 0; g--) {
+            acc += hist[g];
+            if (acc > n * 0.25) {
+                hi = g;
+                break;
+            }
+        }
+        const span = Math.max(30, hi - lo);
+        for (let i = 0; i < px.length; i += 4) {
+            let v = ((px[i] - lo) * 255) / span;
+            v = v < 0 ? 0 : v > 255 ? 255 : v;
+            v = v < 150 ? v * 0.6 : v;
+            px[i] = px[i + 1] = px[i + 2] = v;
+        }
+        ctx.putImageData(d, 0, 0);
+        return await new Promise(res => c.toBlob(x => res(x || b), 'image/png'));
+    }
+    catch {
+        return b;
+    }
+}
+const CHAINS = ['שופרסל', 'רמי לוי', 'ויקטורי', 'יוחננוף', 'מגה', 'טיב טעם', 'אושר עד', 'יינות ביתן', 'חצי חינם', 'קרפור', 'סופר-פארם', 'סופר פארם', 'ניו פארם', 'גוד פארם', 'פז', 'דלק', 'סונול', 'דור אלון', 'yellow', 'AM:PM', 'איקאה', 'IKEA', 'ACE', 'הום סנטר', 'קסטרו', 'פוקס', 'H&M', 'ZARA', 'מקדונלד', 'ארומה', 'קפה קפה', 'לנדוור', 'גרג', 'KSP', 'באג', 'מחסני חשמל', 'שוק העיר', 'קואופ', 'פרש מרקט', 'סטופ מרקט', 'מחסני השוק', 'ביג', 'ניצת הדובדבן', 'טרמינל X', 'עדיקה'];
 const NUM = /(-?\d{1,5}(?:[.,]\d{2}))(?!\d)/g;
 const lastNum = (line) => { const m = line.replace(/₪/g, ' ').match(NUM); return m ? Math.abs(Number(m[m.length - 1].replace(',', '.'))) : null; };
 /** Heuristic parser for OCR text of Israeli receipts. Everything it returns is reviewed by the user. */
 function parseReceiptText(text) {
     const lines = text.split(/\n+/).map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
     const uncertain = [];
-    const store = lines.find(l => /[\u0590-\u05FFa-zA-Z]{2,}/.test(l) && !/\d{5,}/.test(l)) || '';
+    const chain = CHAINS.find(c => lines.some(l => l.toLowerCase().includes(c.toLowerCase())));
+    const chainLine = chain ? lines.find(l => l.toLowerCase().includes(chain.toLowerCase())) : '';
+    const store = (chainLine && chainLine.length <= 32 ? chainLine.replace(/[^\u0590-\u05FFa-zA-Z0-9 &'"-]/g, '').trim() : chain) || lines.slice(0, 8).find(l => (l.match(/[\u0590-\u05FF]/g) || []).length >= 3 && !/\d{4,}|חשבונית|קבלה|עוסק|ח\.?פ|טל|כתובת|רח'|www|http|מספר/.test(l)) || lines.find(l => /[\u0590-\u05FFa-zA-Z]{2,}/.test(l) && !/\d{5,}/.test(l)) || '';
     if (!store)
         uncertain.push('store');
     let date = '';
@@ -20078,19 +20208,23 @@ function parseReceiptText(text) {
     const isTotal = (l) => /סה["״']?כ|סהכ|לתשלום|total|סך הכל/i.test(l);
     const isTax = (l) => /מע["״']?מ|vat/i.test(l);
     const isSkip = (l) => /עודף|מזומן|אשראי|כרטיס|תאריך|שעה|קופה|קופאי|ח\.?פ|עוסק|טל|מספר|אסמכתא|חשבונית|visa|mastercard|isracard/i.test(l);
-    let total = 0, tax = null;
+    let total = 0, tax = null, payTotal = 0;
     for (const l of lines) {
-        if (isTotal(l)) {
+        if (isTotal(l) && (!isTax(l) || /כולל/.test(l))) {
             const v = lastNum(l);
-            if (v)
+            if (v && v > total)
                 total = v;
+            if (v && /לתשלום/.test(l))
+                payTotal = v;
         }
-        if (isTax(l) && !isTotal(l)) {
+        if (isTax(l) && !/לפני|כולל/.test(l)) {
             const v = lastNum(l);
             if (v)
                 tax = v;
         }
     }
+    if (payTotal)
+        total = payTotal;
     const items = [];
     for (const l of lines) {
         if (isTotal(l) || isTax(l) || isSkip(l))
@@ -20115,7 +20249,7 @@ function parseReceiptText(text) {
     }
     if (tax === null)
         uncertain.push('tax');
-    return { store, date, items, total, tax, uncertainFields: uncertain, notes: items.length ? 'הזיהוי נעשה במכשיר. כל הפריטים מסומנים לבדיקה.' : 'לא זוהו פריטים – אפשר להוסיף אותם ידנית.' };
+    return { store, date, items, total, tax, uncertainFields: uncertain, notes: items.length ? 'הזיהוי נעשה במכשיר. כדאי לבדוק את הפריטים לפני השמירה.' : 'לא זוהו פריטים – אפשר להוסיף אותם ידנית.' };
 }
 /** AI recognition through the Claude model available to this page (requires the viewer's consent). */
 async function getAiRecognizer() {
@@ -20137,17 +20271,7 @@ async function getAiRecognizer() {
 {"store": string, "date": "YYYY-MM-DD" or "", "items":[{"name": string (as printed, keep Hebrew), "qty": number, "unitPrice": number, "discount": number (positive, 0 if none), "size": string or "", "category": one of ["groceries","restaurants","health","shopping","entertainment","transport","utilities","other"], "uncertain": boolean}], "total": number, "tax": number or null, "uncertainFields": string[] (any of "store","date","total","tax" you could not read clearly), "notes": short Hebrew note about readability or ""}
 Rules: never invent values; if unreadable use "" or 0 and list the field in uncertainFields; mark an item uncertain when any of its values is a guess. If the image is not a receipt, return {"store":"","date":"","items":[],"total":0,"tax":null,"uncertainFields":["store","date","total"],"notes":"התמונה לא נראית כמו קבלה"}.`;
             const r = await sample.json(prompt, { images: [image], modelTier: 'default', cache: false });
-            const v = (r && (r.value ?? r));
-            const items = Array.isArray(v.items) ? v.items.map((i) => ({
-                name: String(i.name || ''), qty: Number(i.qty) || 1, unitPrice: Number(i.unitPrice) || 0, discount: Math.abs(Number(i.discount) || 0),
-                categoryId: ['groceries', 'restaurants', 'health', 'shopping', 'entertainment', 'transport', 'utilities', 'other'].includes(i.category) ? i.category : 'other',
-                size: String(i.size || ''), uncertain: !!i.uncertain,
-            })) : [];
-            return {
-                store: String(v.store || ''), date: /^\d{4}-\d{2}-\d{2}$/.test(v.date || '') ? v.date : '', items,
-                total: Number(v.total) || 0, tax: v.tax === null || v.tax === undefined || v.tax === '' ? null : Number(v.tax),
-                uncertainFields: Array.isArray(v.uncertainFields) ? v.uncertainFields : [], notes: v.notes || '',
-            };
+            return normalizeAi((r && (r.value ?? r)));
         },
     };
 }
@@ -21330,6 +21454,7 @@ function ScannerPage() {
     const camRef = (0, react_1.useRef)(null);
     const upRef = (0, react_1.useRef)(null);
     const [prog, setProg] = (0, react_1.useState)('');
+    const [askConsent, setAskConsent] = (0, react_1.useState)(false);
     (0, react_1.useEffect)(() => { (0, integrations_1.getRecognizer)().then(setAi); }, []);
     (0, react_1.useEffect)(() => () => { if (preview)
         URL.revokeObjectURL(preview); }, [preview]);
@@ -21351,27 +21476,63 @@ function ScannerPage() {
         setPreview(URL.createObjectURL(f));
         setPhase('preview');
     };
-    const scan = async () => {
-        if (!file || !ai)
+    const progText = (p, status) => setProg(status === 'uploading' ? 'שולחים את התמונה לניתוח…' : status === 'analyzing' ? 'מנתחים את הקבלה: חנות, תאריך, פריטים וסכום…'
+        : /recogniz/i.test(status) ? `קוראים את הטקסט… ${Math.round(p * 100)}%` : 'מכינים את רכיב הזיהוי (בפעם הראשונה זה לוקח קצת יותר)…');
+    const runWith = async (rec, fellBack = false) => {
+        const img = file.size > 3 * 1024 * 1024 && rec.local ? await resizeImage(file, 2400, 0.9) : file;
+        setProg('');
+        const r = await rec.recognize(img, progText);
+        if (!r.items.length && !r.total) {
+            setError(r.notes || 'לא הצלחנו לקרוא את הקבלה. נסו תמונה חדה יותר, או הזינו ידנית.');
+            setPhase('preview');
             return;
+        }
+        if (!r.date)
+            r.uncertainFields.push('date');
+        if (fellBack)
+            r.notes = 'הסריקה החכמה לא הייתה זמינה, אז הקבלה נקראה במכשיר. כדאי לבדוק את הפרטים.';
+        setData({ ...r, date: r.date || (0, format_1.todayStr)(), method: 'ai' });
+        setPhase('review');
+    };
+    const scan = async (mode) => {
+        if (mode)
+            integrations_1.smartScanConsent.set(mode === 'smart');
+        if (!file || !ai) {
+            setAskConsent(false);
+            return;
+        }
+        let rec = ai;
+        if (ai.id === 'cloud-ai') {
+            const c = mode === 'smart' ? true : mode === 'local' ? false : integrations_1.smartScanConsent.get();
+            if (c === null) {
+                setAskConsent(true);
+                return;
+            }
+            if (!c) {
+                const loc = (0, integrations_1.getLocalOcr)();
+                if (!loc) {
+                    setError('אין זיהוי במכשיר בדפדפן הזה. אפשר להזין ידנית.');
+                    return;
+                }
+                rec = loc;
+            }
+        }
+        setAskConsent(false);
         setPhase('scanning');
         setError('');
         try {
-            const img = file.size > 3 * 1024 * 1024 ? await resizeImage(file, 2000, 0.85) : file;
-            setProg('');
-            const r = await ai.recognize(img, (p, status) => setProg(/recogniz/i.test(status) ? `קוראים את הטקסט… ${Math.round(p * 100)}%` : 'מכינים את רכיב הזיהוי (בפעם הראשונה זה לוקח קצת יותר)…'));
-            if (!r.items.length && !r.total) {
-                setError(r.notes || 'לא הצלחנו לקרוא את הקבלה. נסו תמונה חדה יותר, או הזינו ידנית.');
-                setPhase('preview');
-                return;
-            }
-            if (!r.date)
-                r.uncertainFields.push('date');
-            setData({ ...r, date: r.date || (0, format_1.todayStr)(), method: 'ai' });
-            setPhase('review');
+            await runWith(rec);
         }
         catch (e) {
-            setError(e?.message === 'load failed' ? 'לא הצלחנו לטעון את רכיב הזיהוי (צריך חיבור לאינטרנט בפעם הראשונה). אפשר להזין ידנית.' : e?.code === 'not_granted' ? 'לא ניתנה הרשאה לזיהוי. אפשר להזין את הקבלה ידנית.' : e?.code === 'rate_limited' ? 'יותר מדי בקשות כרגע. נסו שוב בעוד דקה.' : 'הזיהוי נכשל. אפשר לנסות שוב או להזין ידנית.');
+            const loc = rec.id === 'cloud-ai' && e?.code !== 'rate_limited' ? (0, integrations_1.getLocalOcr)() : null;
+            if (loc) {
+                try {
+                    await runWith(loc, true);
+                    return;
+                }
+                catch { /* fall through */ }
+            }
+            setError(e?.message === 'load failed' ? 'לא הצלחנו לטעון את רכיב הזיהוי (צריך חיבור לאינטרנט בפעם הראשונה). אפשר להזין ידנית.' : e?.code === 'not_granted' ? 'לא ניתנה הרשאה לזיהוי. אפשר להזין את הקבלה ידנית.' : e?.code === 'rate_limited' ? 'יותר מדי סריקות בזמן קצר. נסו שוב בעוד כמה דקות.' : 'הזיהוי נכשל. אפשר לנסות שוב או להזין ידנית.');
             setPhase('preview');
         }
     };
@@ -21379,9 +21540,10 @@ function ScannerPage() {
     const manual = () => { setData({ store: '', date: (0, format_1.todayStr)(), items: [{ name: '', qty: 1, unitPrice: 0, discount: 0, categoryId: 'groceries' }], total: 0, tax: null, uncertainFields: [], method: 'manual' }); setPhase('review'); };
     const restart = () => { setPhase('pick'); setFile(null); setPreview(''); setData(null); setError(''); };
     return ((0, jsx_runtime_1.jsxs)("div", { className: "page", children: [(0, jsx_runtime_1.jsx)(ui_1.PageHeader, { title: "\u05E1\u05E8\u05D9\u05E7\u05EA \u05E7\u05D1\u05DC\u05D4", sub: "\u05E6\u05DC\u05DE\u05D5 \u05D0\u05D5 \u05D4\u05E2\u05DC\u05D5 \u05E7\u05D1\u05DC\u05D4, \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05E9\u05D6\u05D5\u05D4\u05D5 \u05D5\u05E9\u05DE\u05E8\u05D5 \u2013 \u05D4\u05D4\u05D5\u05E6\u05D0\u05D4 \u05EA\u05EA\u05D5\u05D5\u05E1\u05E3 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA." }), (0, jsx_runtime_1.jsxs)("div", { className: "alert alert-info", children: [(0, jsx_runtime_1.jsx)(ui_1.Icon, { name: "info", size: 20 }), ai === undefined ? 'בודקים זמינות זיהוי אוטומטי…' : ai
-                        ? ai.local ? (0, jsx_runtime_1.jsxs)("span", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D8\u05E7\u05E1\u05D8 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05E9\u05DC\u05DB\u05DD." }), " \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05DC\u05D0 \u05E0\u05E9\u05DC\u05D7\u05EA \u05DC\u05E9\u05D5\u05DD \u05DE\u05E7\u05D5\u05DD \u2013 \u05D4\u05D6\u05D9\u05D4\u05D5\u05D9 \u05E8\u05E5 \u05D1\u05EA\u05D5\u05DA \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF. \u05D4\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D9\u05E0\u05D5 \u05DE\u05D5\u05E9\u05DC\u05DD, \u05D1\u05DE\u05D9\u05D5\u05D7\u05D3 \u05D1\u05E7\u05D1\u05DC\u05D5\u05EA \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA \u2013 \u05EA\u05DE\u05D9\u05D3 \u05D1\u05D3\u05E7\u05D5 \u05D5\u05EA\u05E7\u05E0\u05D5 \u05DC\u05E4\u05E0\u05D9 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4."] })
-                            : (0, jsx_runtime_1.jsxs)("span", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05D6\u05DE\u05D9\u05DF" }), " \u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA Claude (\u05D1\u05D9\u05E0\u05D4 \u05DE\u05DC\u05D0\u05DB\u05D5\u05EA\u05D9\u05EA). \u05D4\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D9\u05E0\u05D5 \u05DE\u05D5\u05E9\u05DC\u05DD \u2013 \u05EA\u05DE\u05D9\u05D3 \u05D1\u05D3\u05E7\u05D5 \u05D5\u05EA\u05E7\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4. \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05E0\u05E9\u05DC\u05D7\u05EA \u05DC\u05D6\u05D9\u05D4\u05D5\u05D9 \u05E8\u05E7 \u05DB\u05E9\u05D0\u05EA\u05DD \u05DC\u05D5\u05D7\u05E6\u05D9\u05DD \"\u05E1\u05E8\u05D9\u05E7\u05D4\"."] })
-                        : (0, jsx_runtime_1.jsxs)("span", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8 \u05DB\u05D0\u05DF." }), " \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D4\u05D6\u05D9\u05DF \u05D0\u05EA \u05E4\u05E8\u05D8\u05D9 \u05D4\u05E7\u05D1\u05DC\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA, \u05D0\u05D5 \u05DC\u05E0\u05E1\u05D5\u05EA \u05D0\u05EA \u05D4\u05EA\u05D4\u05DC\u05D9\u05DA \u05E2\u05DD ", (0, jsx_runtime_1.jsx)("strong", { children: "\u05E7\u05D1\u05DC\u05D4 \u05DC\u05D3\u05D5\u05D2\u05DE\u05D4" }), " (\u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D3\u05D2\u05DE\u05D4 \u05DE\u05E1\u05D5\u05DE\u05E0\u05D9\u05DD)."] })] }), phase === 'pick' && (0, jsx_runtime_1.jsxs)(ui_1.Card, { children: [(0, jsx_runtime_1.jsxs)("div", { className: "scan-pick", children: [(0, jsx_runtime_1.jsxs)("button", { className: "scan-big", onClick: () => camRef.current?.click(), children: [(0, jsx_runtime_1.jsx)("span", { children: "\uD83D\uDCF7" }), (0, jsx_runtime_1.jsx)("strong", { children: "\u05E6\u05D9\u05DC\u05D5\u05DD \u05E7\u05D1\u05DC\u05D4" }), (0, jsx_runtime_1.jsx)("small", { children: "\u05E4\u05D5\u05EA\u05D7 \u05D0\u05EA \u05D4\u05DE\u05E6\u05DC\u05DE\u05D4 \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF" })] }), (0, jsx_runtime_1.jsxs)("button", { className: "scan-big", onClick: () => upRef.current?.click(), children: [(0, jsx_runtime_1.jsx)("span", { children: "\uD83D\uDDBC\uFE0F" }), (0, jsx_runtime_1.jsx)("strong", { children: "\u05D4\u05E2\u05DC\u05D0\u05EA \u05EA\u05DE\u05D5\u05E0\u05D4" }), (0, jsx_runtime_1.jsx)("small", { children: "\u05DE\u05D4\u05D2\u05DC\u05E8\u05D9\u05D4 \u05D0\u05D5 \u05DE\u05D4\u05DE\u05D7\u05E9\u05D1" })] }), (0, jsx_runtime_1.jsxs)("button", { className: "scan-big alt", onClick: manual, children: [(0, jsx_runtime_1.jsx)("span", { children: "\u2328\uFE0F" }), (0, jsx_runtime_1.jsx)("strong", { children: "\u05D4\u05D6\u05E0\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA" }), (0, jsx_runtime_1.jsx)("small", { children: "\u05D4\u05E7\u05DC\u05D3\u05EA \u05E4\u05E8\u05D8\u05D9 \u05D4\u05E7\u05D1\u05DC\u05D4" })] })] }), (0, jsx_runtime_1.jsx)("input", { ref: camRef, type: "file", accept: "image/*", capture: "environment", hidden: true, onChange: onFile }), (0, jsx_runtime_1.jsx)("input", { ref: upRef, type: "file", accept: "image/*", hidden: true, onChange: onFile }), error && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-warn", children: error }), (0, jsx_runtime_1.jsx)("div", { className: "center", children: (0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: demo, children: "\u05D4\u05D3\u05D2\u05DE\u05EA \u05D4\u05EA\u05D4\u05DC\u05D9\u05DA \u05E2\u05DD \u05E7\u05D1\u05DC\u05D4 \u05DC\u05D3\u05D5\u05D2\u05DE\u05D4" }) }), (0, jsx_runtime_1.jsx)("p", { className: "muted small center", children: "\u05D8\u05D9\u05E4: \u05E6\u05DC\u05DE\u05D5 \u05E2\u05DC \u05E8\u05E7\u05E2 \u05DB\u05D4\u05D4, \u05D1\u05D0\u05D5\u05E8 \u05D8\u05D5\u05D1, \u05DB\u05E9\u05DB\u05DC \u05D4\u05E7\u05D1\u05DC\u05D4 \u05D1\u05EA\u05D5\u05DA \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4." })] }), (phase === 'preview' || phase === 'scanning') && (0, jsx_runtime_1.jsx)(ui_1.Card, { children: (0, jsx_runtime_1.jsxs)("div", { className: "scan-preview", children: [(0, jsx_runtime_1.jsxs)("div", { className: 'receipt-img ' + (phase === 'scanning' ? 'scanning' : ''), children: [(0, jsx_runtime_1.jsx)("img", { src: preview, alt: "\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05E9\u05DC \u05D4\u05E7\u05D1\u05DC\u05D4" }), phase === 'scanning' && (0, jsx_runtime_1.jsx)("div", { className: "scanline" })] }), (0, jsx_runtime_1.jsxs)("div", { className: "scan-actions", children: [(0, jsx_runtime_1.jsx)("h3", { children: phase === 'scanning' ? 'קוראים את הקבלה…' : 'התמונה מוכנה' }), phase === 'scanning' ? (0, jsx_runtime_1.jsx)("p", { className: "muted", children: prog || 'זה עשוי לקחת כמה שניות.' }) : (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [ai ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, icon: "camera", onClick: scan, children: "\u05E1\u05E8\u05D9\u05E7\u05D4 \u05D5\u05D6\u05D9\u05D4\u05D5\u05D9" }) : (0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05D0\u05D9\u05DF \u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05D1\u05E1\u05D1\u05D9\u05D1\u05D4 \u05D4\u05D6\u05D5." }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: manual, children: "\u05D4\u05D6\u05E0\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA \u05E9\u05DC \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD" }), !ai && (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: demo, children: "\u05D4\u05DE\u05E9\u05DA \u05E2\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D3\u05D5\u05D2\u05DE\u05D4" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: restart, children: "\u05D1\u05D7\u05D9\u05E8\u05EA \u05EA\u05DE\u05D5\u05E0\u05D4 \u05D0\u05D7\u05E8\u05EA" })] }), error && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-warn", children: error })] })] }) }), phase === 'review' && data && (0, jsx_runtime_1.jsx)(Review, { data: data, file: file, preview: preview, onDone: restart }), (0, jsx_runtime_1.jsx)(ui_1.Card, { title: `קבלות שמורות (${s.receipts.length})`, children: s.receipts.length ? (0, jsx_runtime_1.jsx)("div", { className: "receipt-grid", children: s.receipts.slice().sort((a, b) => b.date.localeCompare(a.date)).map(r => ((0, jsx_runtime_1.jsxs)("button", { className: "receipt-tile", onClick: () => setView(r), children: [r.image ? (0, jsx_runtime_1.jsx)("img", { src: r.image, alt: "" }) : (0, jsx_runtime_1.jsx)("span", { className: "rt-icon", children: "\uD83E\uDDFE" }), (0, jsx_runtime_1.jsx)("strong", { children: r.store }), (0, jsx_runtime_1.jsxs)("small", { children: [(0, format_1.dateLabel)(r.date), " \u00B7 ", r.items.length, " \u05E4\u05E8\u05D9\u05D8\u05D9\u05DD"] }), (0, jsx_runtime_1.jsx)("b", { children: (0, format_1.nis)(r.total) }), (0, jsx_runtime_1.jsxs)("span", { className: "row-gap", children: [r.isDemo && (0, jsx_runtime_1.jsx)(ui_1.DemoBadge, {}), (0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: r.method === 'ai' ? 'purple' : 'gray', children: r.method === 'ai' ? 'זוהה אוטומטית' : r.method === 'demo' ? 'דוגמה' : 'ידני' })] })] }, r.id))) }) : (0, jsx_runtime_1.jsx)(ui_1.Empty, { icon: "\uD83E\uDDFE", title: "\u05E2\u05D3\u05D9\u05D9\u05DF \u05D0\u05D9\u05DF \u05E7\u05D1\u05DC\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA" }) }), (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: !!view, onClose: () => setView(null), title: view ? `${view.store} · ${(0, format_1.dateLabel)(view.date)}` : '', wide: true, children: view && (0, jsx_runtime_1.jsxs)("div", { children: [view.image && (0, jsx_runtime_1.jsx)("img", { className: "receipt-full", src: view.image, alt: "\u05EA\u05DE\u05D5\u05E0\u05EA \u05D4\u05E7\u05D1\u05DC\u05D4" }), (0, jsx_runtime_1.jsxs)("table", { className: "items-table", children: [(0, jsx_runtime_1.jsx)("thead", { children: (0, jsx_runtime_1.jsxs)("tr", { children: [(0, jsx_runtime_1.jsx)("th", { children: "\u05DE\u05D5\u05E6\u05E8" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05DB\u05DE\u05D5\u05EA" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05DE\u05D7\u05D9\u05E8" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05D4\u05E0\u05D7\u05D4" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05E1\u05D4\u05F4\u05DB" })] }) }), (0, jsx_runtime_1.jsx)("tbody", { children: view.items.map((i, k) => (0, jsx_runtime_1.jsxs)("tr", { children: [(0, jsx_runtime_1.jsxs)("td", { children: [i.name, i.size ? (0, jsx_runtime_1.jsxs)("small", { className: "muted", children: [" \u00B7 ", i.size] }) : null] }), (0, jsx_runtime_1.jsx)("td", { children: i.qty }), (0, jsx_runtime_1.jsx)("td", { children: (0, format_1.nis)(i.unitPrice, true) }), (0, jsx_runtime_1.jsx)("td", { children: i.discount ? (0, format_1.nis)(i.discount, true) : '—' }), (0, jsx_runtime_1.jsx)("td", { children: (0, format_1.nis)(i.qty * i.unitPrice - i.discount, true) })] }, k)) })] }), (0, jsx_runtime_1.jsxs)("p", { className: "row-between", children: [(0, jsx_runtime_1.jsxs)("span", { children: ["\u05DE\u05E2\u05F4\u05DE: ", view.tax !== null ? (0, format_1.nis)(view.tax, true) : 'לא צוין'] }), (0, jsx_runtime_1.jsxs)("strong", { children: ["\u05E1\u05D4\u05F4\u05DB: ", (0, format_1.nis)(view.total, true)] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "row-end", children: [view.image && (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => { const id = view.id; st.mutate(d => { const r = d.receipts.find(x => x.id === id); if (r)
+                        ? ai.id === 'cloud-ai' ? (0, jsx_runtime_1.jsxs)("span", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "\u05E1\u05E8\u05D9\u05E7\u05D4 \u05D7\u05DB\u05DE\u05D4." }), " \u05DE\u05D6\u05D4\u05D4 \u05D0\u05EA \u05E9\u05DD \u05D4\u05D7\u05E0\u05D5\u05EA, \u05D4\u05EA\u05D0\u05E8\u05D9\u05DA, \u05D4\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05D5\u05D4\u05E1\u05DB\u05D5\u05DD. \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05E0\u05E9\u05DC\u05D7\u05EA \u05DC\u05E0\u05D9\u05EA\u05D5\u05D7 \u05E8\u05E7 \u05D0\u05D7\u05E8\u05D9 \u05D0\u05D9\u05E9\u05D5\u05E8 \u05E9\u05DC\u05DB\u05DD, \u05D5\u05DC\u05D0 \u05E0\u05E9\u05DE\u05E8\u05EA. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D1\u05D7\u05D5\u05E8 \u05D2\u05DD \u05E1\u05E8\u05D9\u05E7\u05D4 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D1\u05DC\u05D1\u05D3. \u05EA\u05DE\u05D9\u05D3 \u05DB\u05D3\u05D0\u05D9 \u05DC\u05D1\u05D3\u05D5\u05E7 \u05DC\u05E4\u05E0\u05D9 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4.", integrations_1.smartScanConsent.get() !== null && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [" ", (0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: () => setAskConsent(true), children: "\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D4\u05D1\u05D7\u05D9\u05E8\u05D4" })] })] })
+                            : ai.local ? (0, jsx_runtime_1.jsxs)("span", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D8\u05E7\u05E1\u05D8 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05E9\u05DC\u05DB\u05DD." }), " \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05DC\u05D0 \u05E0\u05E9\u05DC\u05D7\u05EA \u05DC\u05E9\u05D5\u05DD \u05DE\u05E7\u05D5\u05DD \u2013 \u05D4\u05D6\u05D9\u05D4\u05D5\u05D9 \u05E8\u05E5 \u05D1\u05EA\u05D5\u05DA \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF. \u05D4\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D9\u05E0\u05D5 \u05DE\u05D5\u05E9\u05DC\u05DD, \u05D1\u05DE\u05D9\u05D5\u05D7\u05D3 \u05D1\u05E7\u05D1\u05DC\u05D5\u05EA \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA \u2013 \u05EA\u05DE\u05D9\u05D3 \u05D1\u05D3\u05E7\u05D5 \u05D5\u05EA\u05E7\u05E0\u05D5 \u05DC\u05E4\u05E0\u05D9 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4."] })
+                                : (0, jsx_runtime_1.jsxs)("span", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05D6\u05DE\u05D9\u05DF" }), " \u05D1\u05D0\u05DE\u05E6\u05E2\u05D5\u05EA Claude (\u05D1\u05D9\u05E0\u05D4 \u05DE\u05DC\u05D0\u05DB\u05D5\u05EA\u05D9\u05EA). \u05D4\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D9\u05E0\u05D5 \u05DE\u05D5\u05E9\u05DC\u05DD \u2013 \u05EA\u05DE\u05D9\u05D3 \u05D1\u05D3\u05E7\u05D5 \u05D5\u05EA\u05E7\u05E0\u05D5 \u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05DC\u05E4\u05E0\u05D9 \u05D4\u05E9\u05DE\u05D9\u05E8\u05D4. \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05E0\u05E9\u05DC\u05D7\u05EA \u05DC\u05D6\u05D9\u05D4\u05D5\u05D9 \u05E8\u05E7 \u05DB\u05E9\u05D0\u05EA\u05DD \u05DC\u05D5\u05D7\u05E6\u05D9\u05DD \"\u05E1\u05E8\u05D9\u05E7\u05D4\"."] })
+                        : (0, jsx_runtime_1.jsxs)("span", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "\u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05DC\u05D0 \u05DE\u05D7\u05D5\u05D1\u05E8 \u05DB\u05D0\u05DF." }), " \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D4\u05D6\u05D9\u05DF \u05D0\u05EA \u05E4\u05E8\u05D8\u05D9 \u05D4\u05E7\u05D1\u05DC\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA, \u05D0\u05D5 \u05DC\u05E0\u05E1\u05D5\u05EA \u05D0\u05EA \u05D4\u05EA\u05D4\u05DC\u05D9\u05DA \u05E2\u05DD ", (0, jsx_runtime_1.jsx)("strong", { children: "\u05E7\u05D1\u05DC\u05D4 \u05DC\u05D3\u05D5\u05D2\u05DE\u05D4" }), " (\u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D3\u05D2\u05DE\u05D4 \u05DE\u05E1\u05D5\u05DE\u05E0\u05D9\u05DD)."] })] }), phase === 'pick' && (0, jsx_runtime_1.jsxs)(ui_1.Card, { children: [(0, jsx_runtime_1.jsxs)("div", { className: "scan-pick", children: [(0, jsx_runtime_1.jsxs)("button", { className: "scan-big", onClick: () => camRef.current?.click(), children: [(0, jsx_runtime_1.jsx)("span", { children: "\uD83D\uDCF7" }), (0, jsx_runtime_1.jsx)("strong", { children: "\u05E6\u05D9\u05DC\u05D5\u05DD \u05E7\u05D1\u05DC\u05D4" }), (0, jsx_runtime_1.jsx)("small", { children: "\u05E4\u05D5\u05EA\u05D7 \u05D0\u05EA \u05D4\u05DE\u05E6\u05DC\u05DE\u05D4 \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF" })] }), (0, jsx_runtime_1.jsxs)("button", { className: "scan-big", onClick: () => upRef.current?.click(), children: [(0, jsx_runtime_1.jsx)("span", { children: "\uD83D\uDDBC\uFE0F" }), (0, jsx_runtime_1.jsx)("strong", { children: "\u05D4\u05E2\u05DC\u05D0\u05EA \u05EA\u05DE\u05D5\u05E0\u05D4" }), (0, jsx_runtime_1.jsx)("small", { children: "\u05DE\u05D4\u05D2\u05DC\u05E8\u05D9\u05D4 \u05D0\u05D5 \u05DE\u05D4\u05DE\u05D7\u05E9\u05D1" })] }), (0, jsx_runtime_1.jsxs)("button", { className: "scan-big alt", onClick: manual, children: [(0, jsx_runtime_1.jsx)("span", { children: "\u2328\uFE0F" }), (0, jsx_runtime_1.jsx)("strong", { children: "\u05D4\u05D6\u05E0\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA" }), (0, jsx_runtime_1.jsx)("small", { children: "\u05D4\u05E7\u05DC\u05D3\u05EA \u05E4\u05E8\u05D8\u05D9 \u05D4\u05E7\u05D1\u05DC\u05D4" })] })] }), (0, jsx_runtime_1.jsx)("input", { ref: camRef, type: "file", accept: "image/*", capture: "environment", hidden: true, onChange: onFile }), (0, jsx_runtime_1.jsx)("input", { ref: upRef, type: "file", accept: "image/*", hidden: true, onChange: onFile }), error && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-warn", children: error }), (0, jsx_runtime_1.jsx)("div", { className: "center", children: (0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: demo, children: "\u05D4\u05D3\u05D2\u05DE\u05EA \u05D4\u05EA\u05D4\u05DC\u05D9\u05DA \u05E2\u05DD \u05E7\u05D1\u05DC\u05D4 \u05DC\u05D3\u05D5\u05D2\u05DE\u05D4" }) }), (0, jsx_runtime_1.jsx)("p", { className: "muted small center", children: "\u05D8\u05D9\u05E4: \u05E6\u05DC\u05DE\u05D5 \u05E2\u05DC \u05E8\u05E7\u05E2 \u05DB\u05D4\u05D4, \u05D1\u05D0\u05D5\u05E8 \u05D8\u05D5\u05D1, \u05DB\u05E9\u05DB\u05DC \u05D4\u05E7\u05D1\u05DC\u05D4 \u05D1\u05EA\u05D5\u05DA \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4." })] }), (phase === 'preview' || phase === 'scanning') && (0, jsx_runtime_1.jsx)(ui_1.Card, { children: (0, jsx_runtime_1.jsxs)("div", { className: "scan-preview", children: [(0, jsx_runtime_1.jsxs)("div", { className: 'receipt-img ' + (phase === 'scanning' ? 'scanning' : ''), children: [(0, jsx_runtime_1.jsx)("img", { src: preview, alt: "\u05EA\u05E6\u05D5\u05D2\u05D4 \u05DE\u05E7\u05D3\u05D9\u05DE\u05D4 \u05E9\u05DC \u05D4\u05E7\u05D1\u05DC\u05D4" }), phase === 'scanning' && (0, jsx_runtime_1.jsx)("div", { className: "scanline" })] }), (0, jsx_runtime_1.jsxs)("div", { className: "scan-actions", children: [(0, jsx_runtime_1.jsx)("h3", { children: phase === 'scanning' ? 'קוראים את הקבלה…' : 'התמונה מוכנה' }), phase === 'scanning' ? (0, jsx_runtime_1.jsx)("p", { className: "muted", children: prog || 'זה עשוי לקחת כמה שניות.' }) : (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [ai ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, icon: "camera", onClick: () => scan(), children: "\u05E1\u05E8\u05D9\u05E7\u05D4 \u05D5\u05D6\u05D9\u05D4\u05D5\u05D9" }) : (0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05D0\u05D9\u05DF \u05D6\u05D9\u05D4\u05D5\u05D9 \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05D1\u05E1\u05D1\u05D9\u05D1\u05D4 \u05D4\u05D6\u05D5." }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: manual, children: "\u05D4\u05D6\u05E0\u05D4 \u05D9\u05D3\u05E0\u05D9\u05EA \u05E9\u05DC \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD" }), !ai && (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: demo, children: "\u05D4\u05DE\u05E9\u05DA \u05E2\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D3\u05D5\u05D2\u05DE\u05D4" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: restart, children: "\u05D1\u05D7\u05D9\u05E8\u05EA \u05EA\u05DE\u05D5\u05E0\u05D4 \u05D0\u05D7\u05E8\u05EA" })] }), error && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-warn", children: error })] })] }) }), (0, jsx_runtime_1.jsxs)(ui_1.Modal, { open: askConsent, onClose: () => setAskConsent(false), title: "\u05E1\u05E8\u05D9\u05E7\u05D4 \u05D7\u05DB\u05DE\u05D4", children: [(0, jsx_runtime_1.jsx)("p", { children: "\u05D1\u05E1\u05E8\u05D9\u05E7\u05D4 \u05D7\u05DB\u05DE\u05D4 \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05E0\u05E9\u05DC\u05D7\u05EA \u05DC\u05E9\u05E8\u05EA \u05E9\u05DC CashUp \u05D5\u05DE\u05E0\u05D5\u05EA\u05D7\u05EA \u05E2\u05DC \u05D9\u05D3\u05D9 Claude (\u05D1\u05D9\u05E0\u05D4 \u05DE\u05DC\u05D0\u05DB\u05D5\u05EA\u05D9\u05EA \u05E9\u05DC Anthropic), \u05DB\u05D3\u05D9 \u05DC\u05D6\u05D4\u05D5\u05EA \u05D0\u05EA \u05D4\u05D7\u05E0\u05D5\u05EA, \u05D4\u05EA\u05D0\u05E8\u05D9\u05DA, \u05D4\u05E4\u05E8\u05D9\u05D8\u05D9\u05DD \u05D5\u05D4\u05E1\u05DB\u05D5\u05DD." }), (0, jsx_runtime_1.jsxs)("ul", { className: "dup-list", children: [(0, jsx_runtime_1.jsx)("li", { children: "\u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05DC\u05D0 \u05E0\u05E9\u05DE\u05E8\u05EA \u05D1\u05E9\u05E8\u05EA \u05D5\u05DC\u05D0 \u05DE\u05E9\u05DE\u05E9\u05EA \u05DC\u05E9\u05D5\u05DD \u05DE\u05D8\u05E8\u05D4 \u05D0\u05D7\u05E8\u05EA." }), (0, jsx_runtime_1.jsx)("li", { children: "\u05D4\u05EA\u05D5\u05E6\u05D0\u05D4 \u05D7\u05D5\u05D6\u05E8\u05EA \u05D0\u05DC\u05D9\u05DB\u05DD \u05DC\u05D1\u05D3\u05D9\u05E7\u05D4, \u05D5\u05E0\u05E9\u05DE\u05E8\u05EA \u05E8\u05E7 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05E9\u05DC\u05DB\u05DD." }), (0, jsx_runtime_1.jsx)("li", { children: "\u05DB\u05D3\u05D0\u05D9 \u05DC\u05D0 \u05DC\u05E6\u05DC\u05DD \u05E4\u05E8\u05D8\u05D9\u05DD \u05DE\u05D6\u05D4\u05D9\u05DD \u05DB\u05DE\u05D5 \u05DE\u05E1\u05E4\u05E8 \u05DB\u05E8\u05D8\u05D9\u05E1 \u05DE\u05DC\u05D0." })] }), (0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05D0\u05E4\u05E9\u05E8 \u05D2\u05DD \u05E1\u05E8\u05D9\u05E7\u05D4 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D1\u05DC\u05D1\u05D3: \u05E4\u05E8\u05D8\u05D9\u05EA \u05DC\u05D2\u05DE\u05E8\u05D9, \u05D0\u05D1\u05DC \u05E4\u05D7\u05D5\u05EA \u05DE\u05D3\u05D5\u05D9\u05E7\u05EA \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA." }), (0, jsx_runtime_1.jsxs)("div", { className: "row-end", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => scan('local'), children: "\u05E1\u05E8\u05D9\u05E7\u05D4 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D1\u05DC\u05D1\u05D3" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { onClick: () => scan('smart'), children: "\u05D0\u05D9\u05E9\u05D5\u05E8 \u05D5\u05E1\u05E8\u05D9\u05E7\u05D4 \u05D7\u05DB\u05DE\u05D4" })] })] }), phase === 'review' && data && (0, jsx_runtime_1.jsx)(Review, { data: data, file: file, preview: preview, onDone: restart }), (0, jsx_runtime_1.jsx)(ui_1.Card, { title: `קבלות שמורות (${s.receipts.length})`, children: s.receipts.length ? (0, jsx_runtime_1.jsx)("div", { className: "receipt-grid", children: s.receipts.slice().sort((a, b) => b.date.localeCompare(a.date)).map(r => ((0, jsx_runtime_1.jsxs)("button", { className: "receipt-tile", onClick: () => setView(r), children: [r.image ? (0, jsx_runtime_1.jsx)("img", { src: r.image, alt: "" }) : (0, jsx_runtime_1.jsx)("span", { className: "rt-icon", children: "\uD83E\uDDFE" }), (0, jsx_runtime_1.jsx)("strong", { children: r.store }), (0, jsx_runtime_1.jsxs)("small", { children: [(0, format_1.dateLabel)(r.date), " \u00B7 ", r.items.length, " \u05E4\u05E8\u05D9\u05D8\u05D9\u05DD"] }), (0, jsx_runtime_1.jsx)("b", { children: (0, format_1.nis)(r.total) }), (0, jsx_runtime_1.jsxs)("span", { className: "row-gap", children: [r.isDemo && (0, jsx_runtime_1.jsx)(ui_1.DemoBadge, {}), (0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: r.method === 'ai' ? 'purple' : 'gray', children: r.method === 'ai' ? 'זוהה אוטומטית' : r.method === 'demo' ? 'דוגמה' : 'ידני' })] })] }, r.id))) }) : (0, jsx_runtime_1.jsx)(ui_1.Empty, { icon: "\uD83E\uDDFE", title: "\u05E2\u05D3\u05D9\u05D9\u05DF \u05D0\u05D9\u05DF \u05E7\u05D1\u05DC\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA" }) }), (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: !!view, onClose: () => setView(null), title: view ? `${view.store} · ${(0, format_1.dateLabel)(view.date)}` : '', wide: true, children: view && (0, jsx_runtime_1.jsxs)("div", { children: [view.image && (0, jsx_runtime_1.jsx)("img", { className: "receipt-full", src: view.image, alt: "\u05EA\u05DE\u05D5\u05E0\u05EA \u05D4\u05E7\u05D1\u05DC\u05D4" }), (0, jsx_runtime_1.jsxs)("table", { className: "items-table", children: [(0, jsx_runtime_1.jsx)("thead", { children: (0, jsx_runtime_1.jsxs)("tr", { children: [(0, jsx_runtime_1.jsx)("th", { children: "\u05DE\u05D5\u05E6\u05E8" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05DB\u05DE\u05D5\u05EA" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05DE\u05D7\u05D9\u05E8" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05D4\u05E0\u05D7\u05D4" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05E1\u05D4\u05F4\u05DB" })] }) }), (0, jsx_runtime_1.jsx)("tbody", { children: view.items.map((i, k) => (0, jsx_runtime_1.jsxs)("tr", { children: [(0, jsx_runtime_1.jsxs)("td", { children: [i.name, i.size ? (0, jsx_runtime_1.jsxs)("small", { className: "muted", children: [" \u00B7 ", i.size] }) : null] }), (0, jsx_runtime_1.jsx)("td", { children: i.qty }), (0, jsx_runtime_1.jsx)("td", { children: (0, format_1.nis)(i.unitPrice, true) }), (0, jsx_runtime_1.jsx)("td", { children: i.discount ? (0, format_1.nis)(i.discount, true) : '—' }), (0, jsx_runtime_1.jsx)("td", { children: (0, format_1.nis)(i.qty * i.unitPrice - i.discount, true) })] }, k)) })] }), (0, jsx_runtime_1.jsxs)("p", { className: "row-between", children: [(0, jsx_runtime_1.jsxs)("span", { children: ["\u05DE\u05E2\u05F4\u05DE: ", view.tax !== null ? (0, format_1.nis)(view.tax, true) : 'לא צוין'] }), (0, jsx_runtime_1.jsxs)("strong", { children: ["\u05E1\u05D4\u05F4\u05DB: ", (0, format_1.nis)(view.total, true)] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "row-end", children: [view.image && (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => { const id = view.id; st.mutate(d => { const r = d.receipts.find(x => x.id === id); if (r)
                                         r.image = undefined; }, 'התמונה נמחקה'); setView(null); }, children: "\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D1\u05DC\u05D1\u05D3" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "danger", icon: "trash", onClick: () => { const r = view; st.mutate(d => { d.receipts = d.receipts.filter(x => x.id !== r.id); d.transactions = d.transactions.filter(t => t.id !== r.transactionId); }, 'הקבלה וההוצאה הקשורה נמחקו'); setView(null); }, children: "\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05E7\u05D1\u05DC\u05D4 \u05D5\u05D4\u05D4\u05D5\u05E6\u05D0\u05D4" })] })] }) })] }));
 }
 function Review({ data, file, preview, onDone }) {
