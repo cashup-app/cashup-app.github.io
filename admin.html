@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CashUp – ניהול משתמשים</title><meta name="robots" content="noindex,nofollow"><link rel="icon" href="img/icon-192.png">
+<style>
+body{margin:0;font-family:'Heebo',system-ui,Arial,sans-serif;background:#F4F5F0;color:#16232E}
+header{background:#0F3D3E;color:#fff;padding:16px 22px;display:flex;justify-content:space-between;align-items:center}
+main{max-width:1100px;margin:0 auto;padding:22px}
+.btn{background:#E9B949;border:0;border-radius:12px;padding:10px 18px;font-weight:800;font:inherit;cursor:pointer}
+.btn.ghost{background:#fff;border:1.5px solid #D5DBD3}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.kpi{background:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 18px rgba(0,0,0,.06)}
+.kpi b{display:block;font-size:1.8rem}
+.kpi span{color:#6b7a86;font-size:.9rem}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.06)}
+th,td{padding:10px 12px;border-bottom:1px solid #EEF1EC;text-align:right;font-size:.92rem}
+th{background:#F7F8F5;color:#4A5A68}
+.muted{color:#6b7a86}.center{text-align:center;padding:60px 10px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+input{padding:10px;border-radius:10px;border:1.5px solid #D5DBD3;font:inherit;min-width:220px}
+@media(max-width:700px){.kpis{grid-template-columns:1fr 1fr}.hide-sm{display:none}}
+</style></head>
+<body>
+<header><strong>CashUp · ניהול משתמשים</strong><span id="who"></span></header>
+<main id="main"><div class="center muted">טוען…</div></main>
+<script>window.MQ_CONFIG = {"firebase":{"apiKey":"","authDomain":"","projectId":"","appId":""}};</script>
+<script>
+(function () {
+  var C = window.MQ_CONFIG.firebase, V = '10.12.2', main = document.getElementById('main'), who = document.getElementById('who');
+  if (!C || !C.apiKey) { main.innerHTML = '<div class="center">חשבונות עוד לא הוגדרו (חסרות הגדרות Firebase).</div>'; return; }
+  function load(s) { return new Promise(function (r, j) { var e = document.createElement('script'); e.src = s; e.onload = r; e.onerror = j; document.head.appendChild(e); }); }
+  var b = 'https://www.gstatic.com/firebasejs/' + V + '/';
+  load(b + 'firebase-app-compat.js').then(function () { return Promise.all([load(b + 'firebase-auth-compat.js'), load(b + 'firebase-firestore-compat.js')]); }).then(start)
+    .catch(function () { main.innerHTML = '<div class="center">לא הצלחנו לטעון את Firebase.</div>'; });
+  var esc = function (x) { return String(x == null ? '' : x).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  function start() {
+    firebase.initializeApp(C); var auth = firebase.auth(), db = firebase.firestore();
+    auth.onAuthStateChanged(function (u) {
+      if (!u) { who.textContent = ''; main.innerHTML = '<div class="center"><p>כניסה למנהל/ת בלבד.</p><button class="btn" id="in">כניסה עם Google</button></div>';
+        document.getElementById('in').onclick = function () { auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(function (e) { alert(e.message); }); }; return; }
+      who.innerHTML = esc(u.email) + ' · <a href="#" id="out" style="color:#FFE08A">התנתקות</a>'; document.getElementById('out').onclick = function (e) { e.preventDefault(); auth.signOut(); };
+      main.innerHTML = '<div class="center muted">טוען משתמשים…</div>';
+      db.collection('users').get().then(function (snap) { render(snap.docs.map(function (d) { var x = d.data(); x.id = d.id; return x; })); })
+        .catch(function () { main.innerHTML = '<div class="center">אין הרשאה לצפות ברשימה. רק החשבון של מנהל/ת המערכת (כפי שהוגדר בכללי Firestore) יכול לצפות.</div>'; });
+    });
+  }
+  function daysAgo(d) { if (!d) return 9999; return Math.floor((Date.now() - new Date(d + 'T00:00:00').getTime()) / 864e5); }
+  function render(users) {
+    users.sort(function (a, b) { return String(b.createdAt || '').localeCompare(String(a.createdAt || '')); });
+    var act7 = users.filter(function (u) { return daysAgo(u.lastActive) <= 7; }).length, act30 = users.filter(function (u) { return daysAgo(u.lastActive) <= 30; }).length;
+    var cons = users.filter(function (u) { return u.marketingConsent; });
+    main.innerHTML = '<div class="kpis">' +
+      '<div class="kpi"><b>' + users.length + '</b><span>נרשמו סה״כ</span></div>' +
+      '<div class="kpi"><b>' + act7 + '</b><span>פעילים ב-7 ימים</span></div>' +
+      '<div class="kpi"><b>' + act30 + '</b><span>פעילים ב-30 יום</span></div>' +
+      '<div class="kpi"><b>' + cons.length + '</b><span>הסכימו לקבל מיילים</span></div></div>' +
+      '<div class="row"><input id="q" placeholder="חיפוש לפי מייל או שם"><button class="btn ghost" id="csv">העתקת רשימת מיילים (רק מי שהסכים)</button><span class="muted" id="msg"></span></div>' +
+      '<table><thead><tr><th>מייל</th><th class="hide-sm">שם</th><th>נרשם/ה</th><th>פעילות אחרונה</th><th class="hide-sm">דרגת העיר</th><th class="hide-sm">שלב בדרך לחופש</th><th class="hide-sm">מיילים</th></tr></thead><tbody id="tb"></tbody></table>' +
+      '<p class="muted" style="margin-top:14px">🔒 כאן מופיעים רק פרטי חשבון והתקדמות. הנתונים הפיננסיים של המשתמשים לא נשמרים בשרת ואינם זמינים כאן. להסרת משתמש לפי בקשה: Firebase → Authentication ו-Firestore → users.</p>';
+    function rows(f) {
+      document.getElementById('tb').innerHTML = users.filter(function (u) { return !f || (String(u.email) + ' ' + String(u.name)).toLowerCase().indexOf(f) >= 0; }).map(function (u) {
+        var d = daysAgo(u.lastActive);
+        return '<tr><td dir="ltr" style="text-align:right">' + esc(u.email) + '</td><td class="hide-sm">' + esc(u.name) + '</td><td>' + esc(u.createdAt) + '</td><td>' + (d === 0 ? 'היום' : d === 9999 ? '—' : 'לפני ' + d + ' ימים') + '</td><td class="hide-sm">' + esc(u.cityLevel) + '</td><td class="hide-sm">' + esc(u.stage) + '</td><td class="hide-sm">' + (u.marketingConsent ? '✓' : '') + '</td></tr>';
+      }).join('') || '<tr><td colspan="7" class="muted">אין משתמשים עדיין.</td></tr>';
+    }
+    rows('');
+    document.getElementById('q').oninput = function (e) { rows(e.target.value.trim().toLowerCase()); };
+    document.getElementById('csv').onclick = function () {
+      var t = cons.map(function (u) { return u.email; }).join(', ');
+      (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { document.getElementById('msg').textContent = 'הועתקו ' + cons.length + ' מיילים'; })
+        .catch(function () { prompt('העתיקו:', t); });
+    };
+  }
+})();
+</script>
+</body></html>
