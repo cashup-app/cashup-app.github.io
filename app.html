@@ -733,6 +733,24 @@ html.simple .btn{min-height:54px}
 .crop-h.tl{left:-8px;top:-8px;cursor:nwse-resize}.crop-h.tr{right:-8px;top:-8px;cursor:nesw-resize}
 .crop-h.bl{left:-8px;bottom:-8px;cursor:nesw-resize}.crop-h.br{right:-8px;bottom:-8px;cursor:nwse-resize}
 .crop-tools{justify-content:space-between}
+
+/* city as home */
+.home-top{display:grid;grid-template-columns:1.6fr 1fr;gap:18px;margin-bottom:18px;align-items:stretch}
+.spotlight{border:1px solid var(--line);position:relative;overflow:hidden}
+.spotlight::before{content:"";position:absolute;inset:0 0 auto 0;height:4px;background:linear-gradient(90deg,#C9A45C,#E2C788)}
+.spotlight.ready{box-shadow:0 0 0 2px #C9A45C,0 18px 40px -20px rgba(201,164,92,.7)}
+.sp-head{display:flex;gap:14px;align-items:center;margin-bottom:8px}
+.sp-head>div{flex:1;min-width:0}
+.sp-head h2{margin:2px 0 0;font-size:1.5rem}
+.sp-head .b-icon{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;font-size:1.7rem;flex:none}
+.sp-foot{margin-top:12px;flex-wrap:wrap;gap:10px}
+.month-mini{display:flex;flex-direction:column;gap:10px}
+.month-mini .btn{width:100%}
+.mm-row{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--line-2);padding:6px 0}
+.mm-row b{font-family:var(--display);font-size:1.15rem;font-variant-numeric:tabular-nums}
+.mm-row.strong b{font-size:1.4rem}
+.mm-row b.neg{color:var(--neg,#C92A2A)}
+@media (max-width:900px){.home-top{grid-template-columns:1fr}.month-mini>.btn{display:none}}
 /*PREMIUM-START*/
 /* ================= Premium layer: "banknote" identity ================= */
 :root{--brass:#C9A45C;--brass-hi:#E2C788;--brass-lo:#9C7A36;--note:#0C2D27;--note-2:#123E36;--cream-ink:#EFE8D6;
@@ -18174,8 +18192,8 @@ const Goals_1 = require("./pages/Goals");
 const Reports_1 = require("./pages/Reports");
 const Settings_1 = require("./pages/Settings");
 exports.NAV = [
-    { id: 'home', label: 'בית', icon: 'home', simple: true, mobile: true },
     { id: 'game', label: 'העיר שלי', short: 'העיר', icon: 'city', simple: true, mobile: true },
+    { id: 'home', label: 'סיכום החודש', short: 'סיכום', icon: 'home', simple: true, mobile: true },
     { id: 'expenses', label: 'ההוצאות שלי', short: 'הוצאות', icon: 'list', simple: true, mobile: true },
     { id: 'analysis', label: 'ניתוח פיננסי', icon: 'chart' },
     { id: 'coach', label: 'המאמן הפיננסי', icon: 'chat' },
@@ -18276,7 +18294,7 @@ const repo = new storage_1.LocalRepository();
 const PAGES = ['home', 'game', 'expenses', 'scanner', 'analysis', 'coach', 'alternatives', 'goals', 'reports', 'settings'];
 exports.PAGES = PAGES;
 const HASH = { home: 'home', game: 'board', expenses: 'expenses', scanner: 'scanner', analysis: 'analysis', coach: 'coach', alternatives: 'alternatives', goals: 'goals', reports: 'reports', settings: 'preferences' };
-const fromHash = () => { const h = location.hash.replace('#', ''); const p = Object.keys(HASH).find(k => HASH[k] === h); return p || 'home'; };
+const fromHash = () => { const h = location.hash.replace('#', ''); const p = Object.keys(HASH).find(k => HASH[k] === h); return p || 'game'; };
 function initial() {
     const loaded = repo.load();
     if (loaded)
@@ -18499,6 +18517,10 @@ function migrate(raw) {
     const s = { ...base, ...raw };
     s.settings = { ...base.settings, ...(raw.settings || {}) };
     s.game = { ...base.game, ...(raw.game || {}) };
+    if (!raw.game)
+        s.game.caps['missionsV'] = 2;
+    else
+        (0, game_1.migrateMissions)(s.game);
     s.productPrefs = { ...base.productPrefs, ...(raw.productPrefs || {}) };
     s.notif = { ...base.notif, ...(raw.notif || {}) };
     s.outside = { ...base.outside, ...(raw.outside || {}) };
@@ -18613,6 +18635,7 @@ exports.awardOnce = awardOnce;
 exports.awardCapped = awardCapped;
 exports.bump = bump;
 exports.onExpenseRecorded = onExpenseRecorded;
+exports.migrateMissions = migrateMissions;
 exports.missionReady = missionReady;
 exports.completeMission = completeMission;
 exports.checkAchievements = checkAchievements;
@@ -18687,118 +18710,183 @@ function depositStreak(s) {
     return best;
 }
 const n = (b) => [b ? 1 : 0, 1];
+const goalDepositMonths = (s, pred) => new Set(userGoals(s).filter(pred).flatMap(g => g.deposits.map(d => d.date.slice(0, 7)))).size;
+const anyDeposit = (s, pred = () => true) => userGoals(s).filter(pred).some(g => g.deposits.length > 0);
+const realTx = (s) => s.transactions.filter(t => !t.isDemo);
+const pct = (v, of) => [Math.min(100, Math.max(0, Math.round(of > 0 ? (v / of) * 100 : 0))), 100];
+const runwayPct = (s, months) => { const f = (0, freedom_1.freedomStats)(s, true); return pct(f.runway ?? 0, months); };
+const emergencyPct = (s, months) => { const f = (0, freedom_1.freedomStats)(s, true), a = (0, freedom_1.avgMonthlyExpenses)(s).avg; return a ? pct(f.emergency, a * months) : [0, 100]; };
+const bestGoal = (s) => Math.round(Math.max(0, ...userGoals(s).map(finance_1.goalProgress)));
+const selfDone = (k) => (s) => [Math.min((0, exports.stat)(s, k), 1), 1];
+function budgetMonthOk(s) {
+    const k = (0, format_1.shiftMonth)((0, format_1.currentMonth)(), -1);
+    const budgeted = s.categories.filter(c => !!c.budget);
+    const tx = realTx(s).filter(t => t.kind === 'expense' && t.date.startsWith(k));
+    if (!budgeted.length || tx.length < 10)
+        return false;
+    return budgeted.every(c => tx.filter(t => t.categoryId === c.id).reduce((a, t) => a + t.amount, 0) <= (c.budget || 0));
+}
+function savedShareLastMonth(s) {
+    const k = (0, format_1.shiftMonth)((0, format_1.currentMonth)(), -1);
+    const inc = realTx(s).filter(t => t.kind === 'income' && t.date.startsWith(k)).reduce((a, t) => a + t.amount, 0);
+    const dep = (0, finance_1.goalDepositsInMonth)(userGoals(s), k);
+    return inc > 0 ? (dep / inc) * 100 : 0;
+}
 exports.BUILDINGS = [
     {
-        id: 'gate', name: 'שער החופש', icon: '🌅', color: '#F59F00', roof: '#E67700', unlock: 5, about: 'היעד של כל העיר: חופש כלכלי – כשהחיסכון מכסה את ההוצאות.',
+        id: 'gate', name: 'שער החופש', icon: '🌅', color: '#F59F00', roof: '#E67700', unlock: 5, legacy: [1, 3, 5], about: 'היעד של כל העיר: חופש כלכלי – כשהחיסכון מכסה את ההוצאות.',
         missions: [
+            { title: 'עדכנו חסכונות מחוץ לאפליקציה', desc: 'בכרטיס "הדרך לחופש כלכלי" – "חסכונות מחוץ לאפליקציה": פיקדון, קופת גמל, קרן השתלמות.', why: 'תמונה מלאה מראה כמה אתם כבר קרובים.', xp: 20, progress: s => n(s.outside.liquid > 0 || s.outside.pension > 0), go: { label: 'לכרטיס החופש', page: 'freedom' } },
             { title: 'חשבו את "מספר החופש" שלכם', desc: 'בכרטיס "הדרך לחופש כלכלי" – לחצו "איך מחושב?".', why: 'יעד ברור הופך חלום לתוכנית.', xp: 30, progress: s => [Math.min((0, exports.stat)(s, 'freedomCalc'), 1), 1], go: { label: 'לחישוב', page: 'freedom' } },
-            { title: '6 חודשי חופש', desc: 'החיסכון שלכם מכסה 6 חודשי הוצאות.', why: 'חצי שנה של בחירה חופשית – בלי לחץ.', xp: 50, progress: s => { const f = (0, freedom_1.freedomStats)(s, true); return [Math.min(100, Math.round(((f.runway ?? 0) / 6) * 100)), 100]; }, go: { label: 'להפקדה', page: 'goals' } },
-            { title: '5% מ"מספר החופש"', desc: 'החיסכון הגיע ל-5% מהיעד הגדול.', why: 'כל אחוז הוא צעד אמיתי בדרך.', xp: 80, progress: s => { const f = (0, freedom_1.freedomStats)(s, true); return [Math.min(100, Math.round(f.pct * 20)), 100]; }, go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'חודש חופש אחד', desc: 'החיסכון מכסה חודש שלם של הוצאות.', why: 'חודש שבו אתם לא תלויים במשכורת הבאה.', xp: 30, progress: s => runwayPct(s, 1), go: { label: 'להפקדה', page: 'goals' } },
+            { title: '6 חודשי חופש', desc: 'החיסכון שלכם מכסה 6 חודשי הוצאות.', why: 'חצי שנה של בחירה חופשית – בלי לחץ.', xp: 50, progress: s => runwayPct(s, 6), go: { label: 'להפקדה', page: 'goals' } },
+            { title: '1% מ"מספר החופש"', desc: 'האחוז הראשון של היעד הגדול.', why: 'האחוז הראשון הוא הכי קשה. משם זה מצטבר.', xp: 50, progress: s => { const f = (0, freedom_1.freedomStats)(s, true); return pct(f.pct, 1); }, go: { label: 'להפקדה', page: 'goals' } },
+            { title: '5% מ"מספר החופש"', desc: 'החיסכון הגיע ל-5% מהיעד הגדול.', why: 'כל אחוז הוא צעד אמיתי בדרך.', xp: 80, progress: s => { const f = (0, freedom_1.freedomStats)(s, true); return pct(f.pct, 5); }, go: { label: 'להפקדה', page: 'goals' } },
         ],
     }, {
-        id: 'clock', name: 'מגדל השעון', icon: '🕰️', color: '#4C6EF5', roof: '#364FC7', unlock: 1, about: 'שלב ראשון בדרך לחופש: לדעת בדיוק לאן הולך הכסף.',
+        id: 'clock', name: 'מגדל השעון', icon: '🕰️', color: '#4C6EF5', roof: '#364FC7', unlock: 1, legacy: [1, 3, 5], about: 'שלב ראשון בדרך לחופש: לדעת בדיוק לאן הולך הכסף.',
         missions: [
+            { title: 'רשמו הוצאה ראשונה', desc: 'כל הוצאה – קפה, חניה, קנייה בסופר.', why: 'כל מסע מתחיל בצעד אחד.', xp: 15, progress: s => [Math.min((0, exports.stat)(s, 'expenses'), 1), 1], go: { label: 'להוספת הוצאה', page: 'add' } },
             { title: 'רשמו 5 הוצאות', desc: 'כל הוצאה נחשבת – גם קפה או חניה.', why: 'אי אפשר לשפר את מה שלא רואים.', xp: 30, progress: s => [Math.min((0, exports.stat)(s, 'expenses'), 5), 5], go: { label: 'להוספת הוצאה', page: 'add' } },
+            { title: 'רשמו את ההכנסה החודשית', desc: 'משכורת, קצבה או כל הכנסה קבועה.', why: 'בלי לדעת כמה נכנס, אי אפשר לדעת כמה נשאר.', xp: 20, progress: s => n(realTx(s).some(t => t.kind === 'income')), go: { label: 'להוספת הכנסה', page: 'addIncome' } },
             { title: 'הבדיקה החודשית הראשונה', desc: '10 דקות: הכנסות, הוצאות, הפקדה ועדכון חובות.', why: 'בדיקה חודשית קבועה היא ההרגל שהכי מחזיק לאורך זמן.', xp: 50, progress: s => [Math.min((0, exports.stat)(s, 'checkins'), 1), 1], go: { label: 'לבדיקה החודשית', page: 'checkin' } },
+            { title: 'רשמו 20 הוצאות', desc: 'עכשיו כבר רואים דפוסים.', why: 'אחרי 20 הוצאות התמונה מתחילה להיות אמיתית.', xp: 40, progress: s => [Math.min((0, exports.stat)(s, 'expenses'), 20), 20], go: { label: 'להוספת הוצאה', page: 'add' } },
             { title: 'שבוע עקבי: 5 מתוך 7 ימים', desc: 'רשמו הוצאות ב-5 מתוך 7 הימים האחרונים. יום פספוס – לא נורא.', why: 'מי ששולט בהוצאות – בונה את הפער שממנו חוסכים.', xp: 80, progress: s => [Math.min((0, finance_1.trackingDays)(s, 7), 5), 5], go: { label: 'להוספת הוצאה', page: 'add' } },
         ],
-    },
-    {
-        id: 'budget', name: 'משרד התקציב', icon: '📋', color: '#7048E8', roof: '#5F3DC4', unlock: 1, about: 'מוציאים פחות ממה שמרוויחים – זה המנוע של החופש.',
+    }, {
+        id: 'budget', name: 'משרד התקציב', icon: '📋', color: '#7048E8', roof: '#5F3DC4', unlock: 1, legacy: [1, 3, 5], about: 'מוציאים פחות ממה שמרוויחים – זה המנוע של החופש.',
         missions: [
+            { title: 'הציצו בניתוח הפיננסי', desc: 'פתחו את מסך "ניתוח פיננסי" ותראו לאן הולך הכסף.', why: 'מבט אחד מגלה איפה רוב הכסף נעלם.', xp: 15, progress: s => n(!!s.visits.analysis), go: { label: 'לניתוח', page: 'analysis' } },
             { title: 'הגדירו תקציב לקטגוריה', desc: 'בחרו קטגוריה לא-חיונית שחשוב לכם לעקוב אחריה.', why: 'תוכנית מראש מונעת את "לאן נעלם הכסף?".', xp: 30, progress: s => n(s.categories.some(c => !!c.budget)), go: { label: 'להגדרת תקציב', page: 'budgets' } },
+            { title: 'בחרו הוצאה אחת לצמצם', desc: 'הוצאה לא-חיונית אחת שתורידו החודש – משלוחים, בגדים, קפה בחוץ. סמנו כשבחרתם.', why: 'שינוי אחד קטן קל יותר להתמיד בו מעשרה.', xp: 20, progress: selfDone('cutPick'), self: 'cutPick' },
             { title: 'תקציב ל-3 קטגוריות', desc: 'תמונה רחבה יותר של החודש.', why: 'כל שקל שלא יוצא סתם – מתפנה לחיסכון.', xp: 50, progress: s => [Math.min(s.categories.filter(c => !!c.budget).length, 3), 3], go: { label: 'להגדרת תקציב', page: 'budgets' } },
+            { title: 'חודש בלי לחרוג מהתקציב', desc: 'בחודש שעבר (עם לפחות 10 הוצאות רשומות) כל הקטגוריות עם תקציב נשארו בתוכו.', why: 'תקציב שעומדים בו הוא כסף שבאמת נשאר.', xp: 40, progress: s => n(budgetMonthOk(s)), go: { label: 'לניתוח', page: 'analysis' } },
             { title: 'חודש מלא עם יתרה של 10%+', desc: 'בחודש שעבר (שרשמתם בו לפחות 10 הוצאות) נשארו לפחות 10% מההכנסה.', why: 'הפער בין הכנסות להוצאות הוא הדלק של החופש הכלכלי.', xp: 80, progress: s => {
-                    const real = { ...s, transactions: s.transactions.filter(t => !t.isDemo) };
+                    const real = { ...s, transactions: realTx(s) };
                     const m = (0, finance_1.monthSummary)(real, (0, format_1.shiftMonth)((0, format_1.currentMonth)(), -1));
                     return n(m.count >= 10 && m.income > 0 && (m.rate ?? 0) >= 10);
                 }, go: { label: 'לניתוח', page: 'analysis' } },
         ],
-    },
-    {
-        id: 'emergency', name: 'תחנת החירום', icon: '🛟', color: '#E03131', roof: '#C92A2A', unlock: 1, about: 'קרן חירום – החומה שמגינה על הדרך לחופש מהפתעות.',
+    }, {
+        id: 'emergency', name: 'תחנת החירום', icon: '🛟', color: '#E03131', roof: '#C92A2A', unlock: 1, legacy: [0, 3, 5], about: 'קרן חירום – החומה שמגינה על הדרך לחופש מהפתעות.',
         missions: [
             { title: 'פתחו קרן חירום', desc: 'צרו יעד חיסכון מסוג "קרן חירום".', why: 'בלי כרית ביטחון, כל הפתעה מחזירה אחורה.', xp: 30, progress: s => n(userGoals(s).some(freedom_1.isEmergency)), go: { label: 'ליעדי החיסכון', page: 'goals' } },
-            { title: 'קרן חירום של חודש הוצאות', desc: 'חסכו בקרן סכום בגובה ההוצאות החודשיות הממוצעות שלכם.', why: 'חודש של שקט – גם אם משהו משתבש.', xp: 50, progress: s => { const f = (0, freedom_1.freedomStats)(s, true), a = (0, freedom_1.avgMonthlyExpenses)(s).avg; return a ? [Math.min(100, Math.round((f.emergency / a) * 100)), 100] : [0, 100]; }, go: { label: 'להפקדה', page: 'goals' } },
-            { title: 'קרן חירום של 3 חודשים', desc: '3 חודשי הוצאות בצד.', why: 'זה הבסיס שעליו בונים חיסכון לטווח ארוך.', xp: 80, progress: s => { const f = (0, freedom_1.freedomStats)(s, true), a = (0, freedom_1.avgMonthlyExpenses)(s).avg; return a ? [Math.min(100, Math.round((f.emergency / (a * 3)) * 100)), 100] : [0, 100]; }, go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'הפקדה ראשונה לקרן', desc: 'כל סכום – גם 50 ₪.', why: 'השקל הראשון הופך את הקרן לאמיתית.', xp: 20, progress: s => n(anyDeposit(s, freedom_1.isEmergency)), go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'שבועיים של שקט', desc: 'בקרן יש חצי חודש של הוצאות.', why: 'תיקון קטן לרכב כבר לא יהיה משבר.', xp: 30, progress: s => emergencyPct(s, 0.5), go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'קרן חירום של חודש הוצאות', desc: 'חסכו בקרן סכום בגובה ההוצאות החודשיות הממוצעות שלכם.', why: 'חודש של שקט – גם אם משהו משתבש.', xp: 50, progress: s => emergencyPct(s, 1), go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'קרן של חודשיים', desc: 'שני חודשי הוצאות בצד.', why: 'עוד מדרגה בחומת ההגנה.', xp: 40, progress: s => emergencyPct(s, 2), go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'קרן חירום של 3 חודשים', desc: '3 חודשי הוצאות בצד.', why: 'זה הבסיס שעליו בונים חיסכון לטווח ארוך.', xp: 80, progress: s => emergencyPct(s, 3), go: { label: 'להפקדה', page: 'goals' } },
         ],
     }, {
-        id: 'debt', name: 'גשר החובות', icon: '🌉', color: '#8D6E63', roof: '#6D4C41', unlock: 1, about: 'סוגרים חובות יקרים לפני שמשקיעים – ריבית על מינוס ואשראי אוכלת את החיסכון.',
+        id: 'debt', name: 'גשר החובות', icon: '🌉', color: '#8D6E63', roof: '#6D4C41', unlock: 1, legacy: [0, 2, 4], about: 'סוגרים חובות יקרים לפני שמשקיעים – ריבית על מינוס ואשראי אוכלת את החיסכון.',
         missions: [
             { title: 'מפו את החובות', desc: 'הוסיפו כל מינוס, אשראי או הלוואה – או סמנו "אין לי חובות".', why: 'אי אפשר לנצח חוב שלא רואים.', xp: 30, progress: s => n(s.debts.some(d => !d.isDemo) || !!s.visits.noDebts), go: { label: 'לחובות', page: 'debts' } },
+            { title: 'בחרו איזה חוב סוגרים קודם', desc: 'בדרך כלל – את זה עם הריבית הכי גבוהה. סמנו כשהחלטתם.', why: 'תוכנית ברורה מקצרת את הדרך החוצה.', xp: 20, progress: s => n(!!s.visits.noDebts || (0, exports.stat)(s, 'debtPlan') > 0), self: 'debtPlan' },
             { title: 'הקטינו חוב', desc: 'עדכנו יתרה נמוכה יותר באחד החובות (או: אין חובות).', why: 'כל שקל שסוגר חוב יקר "מרוויח" את הריבית שלו – בלי סיכון.', xp: 50, progress: s => n(!!s.visits.noDebts || s.debts.some(d => !d.isDemo && d.history.length > 1 && d.balance < d.startBalance)), go: { label: 'לחובות', page: 'debts' } },
+            { title: 'יוצאים מהמינוס', desc: 'אין יתרת מינוס בחשבון הבנק.', why: 'מינוס הוא אחד החובות היקרים – ויציאה ממנו משחררת כסף כל חודש.', xp: 40, progress: s => n(!!s.visits.noDebts || (s.debts.some(d => !d.isDemo) && !s.debts.some(d => !d.isDemo && d.kind === 'overdraft' && d.balance > 0))), go: { label: 'לחובות', page: 'debts' } },
             { title: 'בלי חובות יקרים', desc: `אין מינוס, אשראי או הלוואה בריבית ${8}% ומעלה.`, why: 'עכשיו כל שקל פנוי עובד בשבילכם, לא בשביל הבנק.', xp: 80, progress: s => { const f = (0, freedom_1.freedomStats)(s, true); return n(f.debtsKnown && f.expensiveDebt <= 0); }, go: { label: 'לחובות', page: 'debts' } },
+            { title: 'בלי חובות בכלל', desc: 'כל החובות סגורים (משכנתא לא חייבת להיות כאן).', why: 'כל ההכנסה שלכם – שלכם.', xp: 60, progress: s => n(!!s.visits.noDebts || (s.debts.some(d => !d.isDemo) && s.debts.filter(d => !d.isDemo).every(d => d.balance <= 0))), go: { label: 'לחובות', page: 'debts' } },
         ],
-    },
-    {
-        id: 'bank', name: 'בנק החיסכון', icon: '🏦', color: '#2F9E77', roof: '#1E7A5A', unlock: 2, about: 'חיסכון קבוע – "קודם משלמים לעצמכם".',
+    }, {
+        id: 'bank', name: 'בנק החיסכון', icon: '🏦', color: '#2F9E77', roof: '#1E7A5A', unlock: 2, legacy: [1, 3, 5], about: 'חיסכון קבוע – "קודם משלמים לעצמכם".',
         missions: [
+            { title: 'צרו יעד חיסכון', desc: 'כל יעד – חופשה, רכב, או סתם "כסף בצד".', why: 'לכסף עם שם קל יותר לא לגעת.', xp: 15, progress: s => n(userGoals(s).length > 0), go: { label: 'ליעדי החיסכון', page: 'goals' } },
             { title: 'קבעו הוראת קבע לחיסכון', desc: 'בבנק – העברה קבועה לחיסכון ביום שהמשכורת נכנסת. אחר כך סמנו "קבעתי".', why: 'חיסכון אוטומטי הוא ההרגל המוכח ביותר: מה שלא רואים בעו"ש – לא מוציאים.', xp: 40, progress: s => n(!!s.visits.standingOrder), go: { label: 'לסימון', page: 'goals' } },
+            { title: 'הפקדה ראשונה', desc: 'הפקידו סכום כלשהו ליעד.', why: 'הצעד הראשון הוא החשוב.', xp: 20, progress: s => n(anyDeposit(s)), go: { label: 'להפקדה', page: 'goals' } },
             { title: 'הפקידו ב-2 חודשים שונים', desc: 'כל סכום נחשב.', why: 'עקביות חשובה יותר מגובה הסכום.', xp: 50, progress: s => [Math.min(depositMonths(s), 2), 2], go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'חסכו 10% מההכנסה', desc: 'בחודש שעבר ההפקדות ליעדים הגיעו ל-10% מההכנסה.', why: '10% זה כלל אצבע טוב להתחלה.', xp: 50, progress: s => pct(savedShareLastMonth(s), 10), go: { label: 'להפקדה', page: 'goals' } },
             { title: '3 חודשים רצופים של הפקדות', desc: 'הפקדה בכל אחד מ-3 חודשים ברצף.', why: 'הרגל קבוע הוא מה שמביא בסוף לחופש.', xp: 80, progress: s => [Math.min(depositStreak(s), 3), 3], go: { label: 'להפקדה', page: 'goals' } },
         ],
-    },
-    {
-        id: 'radio', name: 'תחנת המנויים', icon: '📡', color: '#D6336C', roof: '#A61E4D', unlock: 2, about: 'פחות הוצאות קבועות = צריך פחות כסף כדי להיות חופשיים.',
+    }, {
+        id: 'radio', name: 'תחנת המנויים', icon: '📡', color: '#D6336C', roof: '#A61E4D', unlock: 2, legacy: [0, 2, 4], about: 'פחות הוצאות קבועות = צריך פחות כסף כדי להיות חופשיים.',
         missions: [
             { title: 'סקרו את התשלומים הקבועים', desc: 'במסך הניתוח לחצו "סיימתי לסקור".', why: 'הוצאה קבועה חוזרת כל חודש – שם החיסכון הגדול.', xp: 30, progress: s => [Math.min((0, exports.stat)(s, 'subsReviews'), 1), 1], go: { label: 'לניתוח', page: 'analysis' } },
+            { title: 'רשמו 3 הוצאות קבועות', desc: 'סמנו "חוזרת כל חודש" על שכירות, ביטוח, טלפון או מנוי.', why: 'כשהקבועות רשומות – רואים כמה כסף "תפוס" עוד לפני שהחודש מתחיל.', xp: 20, progress: s => [Math.min(realTx(s).filter(t => t.kind === 'expense' && t.recurring).length, 3), 3], go: { label: 'להוספת הוצאה', page: 'add' } },
             { title: 'ביטלתם או הוזלתם הוצאה קבועה', desc: 'במסך הניתוח – "ביטלתי / הוזלתי" ליד תשלום קבוע.', why: 'כל 100 ₪ פחות בחודש מקטינים את "מספר החופש" ב-30,000 ₪.', xp: 50, progress: s => [Math.min((0, exports.stat)(s, 'recurringCut'), 1), 1], go: { label: 'לניתוח', page: 'analysis' } },
+            { title: 'בקשו הנחה מספק', desc: 'התקשרו לחברת הסלולר, האינטרנט או הביטוח ובקשו מחיר טוב יותר. סמנו כשעשיתם.', why: 'שיחה של 10 דקות יכולה לחסוך מאות שקלים בשנה.', xp: 30, progress: selfDone('askDiscount'), self: 'askDiscount' },
             { title: 'סקירה שנייה בשבוע אחר', desc: 'בדיקה חוזרת – מחירים ומנויים משתנים.', why: 'שמירה על ההישג לאורך זמן.', xp: 80, progress: s => [Math.min((0, exports.stat)(s, 'subsReviews'), 2), 2], go: { label: 'לניתוח', page: 'analysis' } },
+            { title: 'שתי הוצאות קבועות פחות', desc: 'ביטלתם או הוזלתם 2 הוצאות קבועות.', why: 'עוד צעד שמוריד את הסכום שצריך כדי להיות חופשיים.', xp: 60, progress: s => [Math.min((0, exports.stat)(s, 'recurringCut'), 2), 2], go: { label: 'לניתוח', page: 'analysis' } },
         ],
-    },
-    {
-        id: 'academy', name: 'אקדמיית העיר', icon: '🎓', color: '#9C36B5', roof: '#862E9C', unlock: 2, about: 'ההשקעה הטובה ביותר: בעצמכם. ידע וכישורים מגדילים את ההכנסה – ואת הפער שממנו חוסכים.',
+    }, {
+        id: 'academy', name: 'אקדמיית העיר', icon: '🎓', color: '#9C36B5', roof: '#862E9C', unlock: 2, legacy: [1, 3, 5], about: 'ההשקעה הטובה ביותר: בעצמכם. ידע וכישורים מגדילים את ההכנסה – ואת הפער שממנו חוסכים.',
         missions: [
+            { title: 'בחרו מה תרצו ללמוד', desc: 'תחום אחד שיכול לקדם אתכם בעבודה או בהכנסה. סמנו כשבחרתם.', why: 'כיוון ברור הופך "פעם אלמד" לתוכנית.', xp: 15, progress: selfDone('learnTopic'), self: 'learnTopic' },
             { title: 'תכננו השקעה בעצמכם', desc: 'צרו יעד מסוג "למידה" – קורס, הסמכה או סדנה שתרצו לעשות.', why: 'קורס טוב יכול להחזיר את עצמו פעמים רבות בהכנסה גבוהה יותר.', xp: 30, progress: s => n(userGoals(s).some(freedom_1.isLearning)), go: { label: 'ליעדי החיסכון', page: 'goals' } },
+            { title: 'הפקידו ליעד הלמידה', desc: 'כל סכום מקרב את הקורס.', why: 'משלמים על הלימודים בלי חוב.', xp: 20, progress: s => n(anyDeposit(s, freedom_1.isLearning)), go: { label: 'להפקדה', page: 'goals' } },
             { title: 'רשמו הוצאה על למידה', desc: 'קורס, ספר, סדנה או הרצאה – בקטגוריה "חינוך ולימודים".', why: 'ידע הוא נכס שאף אחד לא יכול לקחת מכם.', xp: 50, progress: s => [Math.min((0, freedom_1.selfInvestMonths)(s, true), 1), 1], go: { label: 'להוספת הוצאה', page: 'add' } },
+            { title: 'סיימתם קורס או ספר', desc: 'סמנו כשסיימתם משהו שלמדתם.', why: 'למידה שמסתיימת היא למידה שמשתמשים בה.', xp: 40, progress: selfDone('learnDone'), self: 'learnDone' },
             { title: 'לומדים מדי פעם', desc: 'השקעה בלמידה ב-2 חודשים שונים במהלך השנה.', why: 'למידה מתמשכת שומרת אתכם רלוונטיים ומקדמת את ההכנסה.', xp: 80, progress: s => [Math.min((0, freedom_1.selfInvestMonths)(s, true), 2), 2], go: { label: 'להוספת הוצאה', page: 'add' } },
         ],
     }, {
-        id: 'income', name: 'מרכז התעסוקה', icon: '💼', color: '#5C940D', roof: '#4C7A0B', unlock: 2, about: 'חופש בא משני הכיוונים: פחות הוצאות – וגם יותר הכנסה.',
+        id: 'income', name: 'מרכז התעסוקה', icon: '💼', color: '#5C940D', roof: '#4C7A0B', unlock: 2, legacy: [0, 2, 5], about: 'חופש בא משני הכיוונים: פחות הוצאות – וגם יותר הכנסה.',
         missions: [
-            { title: 'בדקו שהשכר שלכם הוגן', desc: 'השוו את השכר לסקרי שכר בתחום שלכם, וסמנו שבדקתם.', why: 'פער שכר קטן מצטבר לסכום גדול לאורך השנים.', xp: 30, progress: s => [Math.min((0, exports.stat)(s, 'salaryCheck'), 1), 1], self: 'salaryCheck' },
-            { title: 'רשמו הכנסה נוספת', desc: 'עבודה צדדית, פרילנס, מכירה של משהו שלא צריך – בקטגוריה "הכנסה אחרת".', why: 'כל הכנסה נוספת יכולה ללכת ישר לחיסכון.', xp: 50, progress: s => n(s.transactions.some(t => !t.isDemo && t.kind === 'income' && t.categoryId === 'income_other')), go: { label: 'להוספת הכנסה', page: 'addIncome' } },
+            { title: 'בדקו שהשכר שלכם הוגן', desc: 'השוו את השכר לסקרי שכר בתחום שלכם, וסמנו שבדקתם.', why: 'פער שכר קטן מצטבר לסכום גדול לאורך השנים.', xp: 30, progress: selfDone('salaryCheck'), self: 'salaryCheck' },
+            { title: 'קראו את תלוש השכר', desc: 'בדקו שהפנסיה, הקרן והימים נכונים. סמנו כשבדקתם.', why: 'טעויות בתלוש קורות – ורק מי שבודק מגלה.', xp: 20, progress: selfDone('payslip'), self: 'payslip' },
+            { title: 'רשמו הכנסה נוספת', desc: 'עבודה צדדית, פרילנס, מכירה של משהו שלא צריך – בקטגוריה "הכנסה אחרת".', why: 'כל הכנסה נוספת יכולה ללכת ישר לחיסכון.', xp: 50, progress: s => n(realTx(s).some(t => t.kind === 'income' && t.categoryId === 'income_other')), go: { label: 'להוספת הכנסה', page: 'addIncome' } },
+            { title: 'הכנסות רשומות חודשיים', desc: 'רשמתם הכנסה ב-2 חודשים שונים.', why: 'רק כך רואים אם ההכנסה עולה.', xp: 30, progress: s => [Math.min(new Set(realTx(s).filter(t => t.kind === 'income').map(t => t.date.slice(0, 7))).size, 2), 2], go: { label: 'להוספת הכנסה', page: 'addIncome' } },
+            { title: 'בקשו העלאה או בדקו הצעה', desc: 'שיחה עם המנהל, או בדיקה של משרה אחרת. סמנו כשעשיתם.', why: 'הצעד הכי משתלם בדרך לחופש הוא לפעמים שיחה אחת.', xp: 40, progress: selfDone('raiseAsk'), self: 'raiseAsk' },
             { title: 'ההכנסה החודשית עלתה', desc: 'חודש מלא שבו ההכנסה גבוהה ב-3% לפחות מהממוצע של החודשים שלפניו.', why: 'העלאה, קידום או הכנסה נוספת – מקצרים את הדרך לחופש.', xp: 80, progress: s => {
-                    const real = s.transactions.filter(t => !t.isDemo && t.kind === 'income');
+                    const real = realTx(s).filter(t => t.kind === 'income');
                     const inc = (k) => real.filter(t => t.date.startsWith(k)).reduce((a, t) => a + t.amount, 0);
                     const last = inc((0, format_1.shiftMonth)((0, format_1.currentMonth)(), -1));
                     const prev = [2, 3, 4].map(i => inc((0, format_1.shiftMonth)((0, format_1.currentMonth)(), -i))).filter(v => v > 0);
                     return n(prev.length > 0 && last > (prev.reduce((a, b) => a + b, 0) / prev.length) * 1.03);
                 } },
         ],
-    },
-    {
-        id: 'market', name: 'השוק העירוני', icon: '🛒', color: '#E8590C', roof: '#C2410C', unlock: 3, about: 'קונים חכם – אותו דבר, בפחות כסף.',
+    }, {
+        id: 'market', name: 'השוק העירוני', icon: '🛒', color: '#E8590C', roof: '#C2410C', unlock: 3, legacy: [0, 2, 4], about: 'קונים חכם – אותו דבר, בפחות כסף.',
         missions: [
-            { title: 'רשמו 5 קניות במזון', desc: 'רשמו 5 קניות בסופר או במכולת.', why: 'רק כשרואים כמה הולך על אוכל – אפשר לחסוך בזה.', xp: 30, progress: s => [Math.min(s.transactions.filter(t => !t.isDemo && t.kind === 'expense' && t.categoryId === 'groceries').length, 5), 5], go: { label: 'להוצאות שלי', page: 'expenses' } },
+            { title: 'רשמו 5 קניות במזון', desc: 'רשמו 5 קניות בסופר או במכולת.', why: 'רק כשרואים כמה הולך על אוכל – אפשר לחסוך בזה.', xp: 30, progress: s => [Math.min(realTx(s).filter(t => t.kind === 'expense' && t.categoryId === 'groceries').length, 5), 5], go: { label: 'להוצאות שלי', page: 'expenses' } },
+            { title: 'קנייה עם רשימה', desc: 'היכנסו לסופר עם רשימה וקנו רק לפיה. סמנו כשעשיתם.', why: 'רשימה היא הדרך הפשוטה ביותר להימנע מקניות דחף.', xp: 20, progress: selfDone('shopList'), self: 'shopList' },
             { title: 'השוו מחיר של מוצר', desc: 'השוואת מחיר ליחידה למוצר שאתם קונים.', why: 'חיסכון קטן שחוזר כל שבוע מצטבר לשנה.', xp: 50, progress: s => n(s.alternatives.some(a => a.source === 'user')), go: { label: 'לחלופות זולות', page: 'alternatives' } },
+            { title: 'השוו 3 מוצרים', desc: 'עוד שתי השוואות מחיר.', why: 'כל השוואה היא הזדמנות לחיסכון קבוע.', xp: 30, progress: s => [Math.min(s.alternatives.filter(a => a.source === 'user').length, 3), 3], go: { label: 'לחלופות זולות', page: 'alternatives' } },
             { title: 'אמצו חלופה זולה', desc: 'סמנו "אימוץ" על השוואה שבה מצאתם חיסכון.', why: 'הפרש קבוע שהולך ישר לחיסכון.', xp: 80, progress: s => n(s.alternatives.some(a => a.source === 'user' && a.status === 'accepted')), go: { label: 'לחלופות זולות', page: 'alternatives' } },
+            { title: 'אמצו 3 חלופות', desc: 'שלוש החלפות קבועות למוצרים זולים יותר.', why: 'שלושה הפרשים קטנים – סכום יפה בסוף השנה.', xp: 60, progress: s => [Math.min(s.alternatives.filter(a => a.source === 'user' && a.status === 'accepted').length, 3), 3], go: { label: 'לחלופות זולות', page: 'alternatives' } },
         ],
     }, {
-        id: 'library', name: 'ספריית הידע', icon: '📚', color: '#0C8599', roof: '#0B7285', unlock: 3, about: 'ידע פיננסי פשוט – להבין איך מגיעים לחופש.',
+        id: 'library', name: 'ספריית הידע', icon: '📚', color: '#0C8599', roof: '#0B7285', unlock: 3, legacy: [1, 3, 5], about: 'ידע פיננסי פשוט – להבין איך מגיעים לחופש.',
         missions: [
+            { title: 'ענו נכון על שאלה אחת', desc: 'לחצו "שאלת ידע" בכרטיס הספרייה.', why: 'כל שאלה – עוד מושג שמבינים.', xp: 15, progress: s => [Math.min((0, exports.stat)(s, 'quizCorrect'), 1), 1], go: { label: 'שאלת ידע', page: 'quiz' } },
             { title: 'ענו נכון על 2 שאלות', desc: 'לחצו "שאלת ידע" בכרטיס הספרייה.', why: 'הבנה טובה = החלטות טובות יותר.', xp: 30, progress: s => [Math.min((0, exports.stat)(s, 'quizCorrect'), 2), 2], go: { label: 'שאלת ידע', page: 'quiz' } },
+            { title: 'ענו נכון על 3 שאלות', desc: 'עד 5 שאלות ביום.', why: 'לאט לאט המושגים נעשים מוכרים.', xp: 20, progress: s => [Math.min((0, exports.stat)(s, 'quizCorrect'), 3), 3], go: { label: 'שאלת ידע', page: 'quiz' } },
             { title: 'ענו נכון על 5 שאלות', desc: 'עד 5 שאלות ביום.', why: 'מכירים את המושגים של הדרך לחופש.', xp: 50, progress: s => [Math.min((0, exports.stat)(s, 'quizCorrect'), 5), 5], go: { label: 'שאלת ידע', page: 'quiz' } },
+            { title: 'ענו נכון על 7 שאלות', desc: 'כמעט מומחים.', why: 'ידע שנבנה בהדרגה נשאר.', xp: 30, progress: s => [Math.min((0, exports.stat)(s, 'quizCorrect'), 7), 7], go: { label: 'שאלת ידע', page: 'quiz' } },
             { title: 'ענו נכון על 10 שאלות', desc: 'מומחי ידע של העיר!', why: 'ידע שמלווה אתכם לכל החיים.', xp: 80, progress: s => [Math.min((0, exports.stat)(s, 'quizCorrect'), 10), 10], go: { label: 'שאלת ידע', page: 'quiz' } },
         ],
     }, {
-        id: 'harbor', name: 'נמל ההשקעות', icon: '⚓', color: '#1971C2', roof: '#1864AB', unlock: 4, about: 'אחרי שיש קרן חירום – חלק מהכסף יוצא להפלגה ארוכה ועובד בשבילכם. מידע כללי בלבד, לא ייעוץ השקעות.',
+        id: 'harbor', name: 'נמל ההשקעות', icon: '⚓', color: '#1971C2', roof: '#1864AB', unlock: 4, legacy: [0, 2, 5], about: 'אחרי שיש קרן חירום – חלק מהכסף יוצא להפלגה ארוכה ועובד בשבילכם. מידע כללי בלבד, לא ייעוץ השקעות.',
         missions: [
             { title: 'לומדים לפני שמשקיעים', desc: 'ענו נכון על 3 שאלות ידע בנושא השקעות בספריית הידע.', why: 'מבינים סיכון, פיזור ודמי ניהול – לפני שמכניסים שקל.', xp: 30, progress: s => [Math.min((0, exports.stat)(s, 'quizInvest'), 3), 3], go: { label: 'שאלת ידע', page: 'quiz' } },
+            { title: 'בדקו דמי ניהול בחיסכון הקיים', desc: 'פנסיה, קופת גמל או קרן השתלמות – בדקו כמה אתם משלמים. סמנו כשבדקתם.', why: 'אחוז אחד בדמי ניהול שווה עשרות אלפי שקלים לאורך השנים.', xp: 20, progress: selfDone('feesCheck'), self: 'feesCheck' },
             { title: 'פתחו יעד השקעה לטווח ארוך', desc: 'יעד מסוג "השקעה" – לתיעוד הכסף שאתם משקיעים (דרך גוף מורשה, לבחירתכם).', why: 'כסף שמושקע לאורך שנים יכול לצמוח – ואז הוא מתחיל לעבוד בשבילכם.', xp: 50, progress: s => n(userGoals(s).some(freedom_1.isInvestment)), go: { label: 'ליעדי החיסכון', page: 'goals' } },
-            { title: 'השקעה קבועה 3 חודשים', desc: 'הפקדה ליעד ההשקעה ב-3 חודשים שונים – רק אחרי שקרן החירום מלאה ובלי חובות יקרים.', why: 'השקעה קבועה לאורך זמן חשובה יותר מ"תזמון השוק".', xp: 80, progress: s => [Math.min(new Set(userGoals(s).filter(freedom_1.isInvestment).flatMap(g => g.deposits.map(d => d.date.slice(0, 7)))).size, 3), 3], go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'הפקדה ראשונה להשקעה', desc: 'רק אחרי שיש קרן חירום ואין חובות יקרים.', why: 'הצעד הראשון של הכסף שעובד בשבילכם.', xp: 30, progress: s => [Math.min(goalDepositMonths(s, freedom_1.isInvestment), 1), 1], go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'השקעה בחודשיים שונים', desc: 'הפקדה ליעד ההשקעה ב-2 חודשים.', why: 'השקעה קבועה מנטרלת את הצורך "לתזמן" את השוק.', xp: 40, progress: s => [Math.min(goalDepositMonths(s, freedom_1.isInvestment), 2), 2], go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'השקעה קבועה 3 חודשים', desc: 'הפקדה ליעד ההשקעה ב-3 חודשים שונים – רק אחרי שקרן החירום מלאה ובלי חובות יקרים.', why: 'השקעה קבועה לאורך זמן חשובה יותר מ"תזמון השוק".', xp: 80, progress: s => [Math.min(goalDepositMonths(s, freedom_1.isInvestment), 3), 3], go: { label: 'להפקדה', page: 'goals' } },
         ],
-    },
-    {
-        id: 'tower', name: 'מגדל היעדים', icon: '🗼', color: '#0CA678', roof: '#087F5B', unlock: 4, about: 'יעדים גדולים בדרך – בונים קומה אחרי קומה.',
+    }, {
+        id: 'tower', name: 'מגדל היעדים', icon: '🗼', color: '#0CA678', roof: '#087F5B', unlock: 4, legacy: [1, 3, 5], about: 'יעדים גדולים בדרך – בונים קומה אחרי קומה.',
         missions: [
+            { title: 'צרו יעד אישי', desc: 'יעד נוסף על קרן החירום – חופשה, רכב, דירה.', why: 'יעד אישי נותן סיבה לחסוך.', xp: 15, progress: s => n(userGoals(s).some(g => !(0, freedom_1.isEmergency)(g))), go: { label: 'ליעדים', page: 'goals' } },
             { title: 'הציבו יעד עם תאריך', desc: 'יעד נוסף על קרן החירום, עם תאריך יעד.', why: 'תאריך הופך משאלה לתוכנית.', xp: 30, progress: s => n(userGoals(s).some(g => !(0, freedom_1.isEmergency)(g) && !!g.targetDate)), go: { label: 'ליעדים', page: 'goals' } },
-            { title: 'הגיעו ל-25% מיעד', desc: 'רבע מהדרך.', why: 'הוכחה שאתם מסוגלים.', xp: 50, progress: s => [Math.min(25, Math.round(Math.max(0, ...userGoals(s).map(finance_1.goalProgress)))), 25], go: { label: 'להפקדה', page: 'goals' } },
-            { title: 'השלימו יעד חיסכון', desc: '100% ביעד אחד.', why: 'כל יעד שהושלם מקרב לחופש.', xp: 80, progress: s => [Math.min(100, Math.round(Math.max(0, ...userGoals(s).map(finance_1.goalProgress)))), 100], go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'הגיעו ל-10% מיעד', desc: 'עשירית מהדרך.', why: 'ההתחלה היא החלק הכי קשה.', xp: 20, progress: s => [Math.min(10, bestGoal(s)), 10], go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'הגיעו ל-25% מיעד', desc: 'רבע מהדרך.', why: 'הוכחה שאתם מסוגלים.', xp: 50, progress: s => [Math.min(25, bestGoal(s)), 25], go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'חצי הדרך', desc: '50% ביעד אחד.', why: 'מכאן כבר רואים את הסוף.', xp: 40, progress: s => [Math.min(50, bestGoal(s)), 50], go: { label: 'להפקדה', page: 'goals' } },
+            { title: 'השלימו יעד חיסכון', desc: '100% ביעד אחד.', why: 'כל יעד שהושלם מקרב לחופש.', xp: 80, progress: s => [Math.min(100, bestGoal(s)), 100], go: { label: 'להפקדה', page: 'goals' } },
         ],
     },
 ];
-exports.MAX_LEVEL = 3;
+exports.MAX_LEVEL = 6;
+/** Upgrade saved progress from the 3-mission version: old level L → position after the L-th original mission. */
+function migrateMissions(g) {
+    if (g.caps['missionsV'] === 2)
+        return;
+    for (const b of exports.BUILDINGS) {
+        const old = g.buildings[b.id] || 0;
+        if (old > 0 && b.legacy)
+            g.buildings[b.id] = b.legacy[Math.min(old, 3) - 1] + 1;
+    }
+    g.caps['missionsV'] = 2;
+}
 const bLevel = (s, id) => s.game.buildings[id] || 0;
 exports.bLevel = bLevel;
 const nextMission = (s, b) => b.missions[(0, exports.bLevel)(s, b.id)] || null;
@@ -21210,9 +21298,11 @@ const store_1 = require("../store");
 const ui_1 = require("../components/ui");
 const game_1 = require("../lib/game");
 const format_1 = require("../lib/format");
+const finance_1 = require("../lib/finance");
 const Freedom_1 = require("../components/Freedom");
 /** Procedural building illustration: level 0 = construction lot, 1–3 = growing building. */
-function BuildingArt({ b, level, locked }) {
+function BuildingArt({ b, level: raw, locked }) {
+    const level = Math.ceil((raw / game_1.MAX_LEVEL) * 3);
     const ground = (0, jsx_runtime_1.jsx)("ellipse", { cx: "60", cy: "100", rx: "50", ry: "8", fill: "rgba(0,0,0,.12)" });
     if (locked)
         return ((0, jsx_runtime_1.jsxs)("svg", { viewBox: "0 0 120 110", className: "b-art", "aria-hidden": "true", children: [ground, (0, jsx_runtime_1.jsx)("rect", { x: "18", y: "62", width: "84", height: "34", rx: "4", fill: "#E9ECEF", stroke: "#ADB5BD", strokeDasharray: "5 4", strokeWidth: "2" }), [24, 40, 56, 72, 88].map(x => (0, jsx_runtime_1.jsx)("rect", { x: x, y: "70", width: "4", height: "26", fill: "#CED4DA" }, x)), (0, jsx_runtime_1.jsx)("rect", { x: "20", y: "76", width: "80", height: "4", fill: "#CED4DA" }), (0, jsx_runtime_1.jsx)("text", { x: "60", y: "56", textAnchor: "middle", fontSize: "26", children: "\uD83D\uDD12" })] }));
@@ -21261,12 +21351,23 @@ function GamePage() {
         if (page === 'addIncome')
             return st.openAddExpense({ kind: 'income', categoryId: 'income_other' });
         if (page === 'freedom') {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            st.toast('לחצו "איך מחושב?" בכרטיס הדרך לחופש', 'info');
+            document.querySelector('.freedom-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             return;
         }
         st.go(page);
     };
+    const action = (x, big = true) => {
+        const m = (0, game_1.nextMission)(s, x);
+        if (!m)
+            return null;
+        return (0, game_1.missionReady)(s, x) ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: big, kind: "gold", icon: "check", onClick: () => complete(x), children: "\u05D4\u05E9\u05DC\u05DE\u05EA \u05D4\u05DE\u05E9\u05D9\u05DE\u05D4 \u05D5\u05E9\u05D3\u05E8\u05D5\u05D2 \u05D4\u05D1\u05E0\u05D9\u05D9\u05DF" })
+            : m.self ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: big, kind: "soft", icon: "check", onClick: () => st.mutate(d => { d.game.stats[m.self] = 1; }, 'סומן – עכשיו אפשר להשלים את המשימה'), children: "\u05D1\u05D9\u05E6\u05E2\u05EA\u05D9 \u2013 \u05E1\u05D9\u05DE\u05D5\u05DF" })
+                : m.go ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: big, kind: "soft", onClick: () => goTo(m.go.page), children: m.go.label }) : null;
+    };
+    const open = game_1.BUILDINGS.filter(x => lv.level >= x.unlock && (0, game_1.nextMission)(s, x));
+    const spotlight = ready[0] || open.slice().sort((a, c) => { const [x1, t1] = (0, game_1.nextMission)(s, a).progress(s), [x2, t2] = (0, game_1.nextMission)(s, c).progress(s); return x2 / t2 - x1 / t1 || (0, game_1.nextMission)(s, a).xp - (0, game_1.nextMission)(s, c).xp; })[0];
+    const real = { ...s, transactions: s.transactions.filter(t => !t.isDemo || s.demoLoaded) };
+    const month = (0, finance_1.monthSummary)(real, (0, format_1.currentMonth)());
     const complete = (x) => {
         st.mutate(d => (0, game_1.completeMission)(d, x), `המשימה הושלמה! +${(0, game_1.nextMission)(s, x).xp} XP`);
         setCelebrate(x.id);
@@ -21299,7 +21400,12 @@ function GamePage() {
         }, ok ? 'תשובה נכונה! +10 XP' : 'לא נורא – לומדים מכל שאלה');
         setQuiz({ ...quiz, answer: i });
     };
-    return ((0, jsx_runtime_1.jsxs)("div", { className: "page", children: [(0, jsx_runtime_1.jsx)(ui_1.PageHeader, { title: "\u05D4\u05E2\u05D9\u05E8 \u05E9\u05DC\u05DB\u05DD", sub: "\u05DB\u05DC \u05DE\u05E9\u05D9\u05DE\u05D4 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9\u05EA \u05E9\u05D0\u05EA\u05DD \u05DE\u05E9\u05DC\u05D9\u05DE\u05D9\u05DD \u05D1\u05D5\u05E0\u05D4 \u05D5\u05DE\u05E9\u05D3\u05E8\u05D2\u05EA \u05D0\u05EA \u05D4\u05E2\u05D9\u05E8 \u05D5\u05DE\u05E7\u05E8\u05D1\u05EA \u05D0\u05EA\u05DB\u05DD \u05DC\u05D7\u05D5\u05E4\u05E9 \u05DB\u05DC\u05DB\u05DC\u05D9. \u05DB\u05DB\u05DC \u05E9\u05D4\u05E2\u05D9\u05E8 \u05D2\u05D3\u05DC\u05D4 \u2013 \u05D0\u05EA\u05DD \u05E2\u05D5\u05DC\u05D9\u05DD \u05D1\u05D3\u05E8\u05D2\u05D4, \u05D5\u05D1\u05D3\u05E8\u05D2\u05D4 5 \u05E0\u05E4\u05EA\u05D7 \u05E9\u05E2\u05E8 \u05D4\u05D7\u05D5\u05E4\u05E9." }), (0, jsx_runtime_1.jsx)(Freedom_1.FreedomPanel, {}), (0, jsx_runtime_1.jsxs)("div", { className: "city-hud", children: [(0, jsx_runtime_1.jsxs)("div", { className: "hud-rank", children: [(0, jsx_runtime_1.jsx)("div", { className: "lvl-badge", children: lv.level }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("small", { children: "\u05D3\u05E8\u05D2\u05EA \u05D4\u05E2\u05D9\u05E8" }), (0, jsx_runtime_1.jsx)("strong", { children: lv.name })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "hud-xp", children: [(0, jsx_runtime_1.jsxs)("div", { className: "row-between", children: [(0, jsx_runtime_1.jsxs)("small", { children: [g.totalEarned, " XP"] }), (0, jsx_runtime_1.jsxs)("small", { children: ["\u05E2\u05D5\u05D3 ", lv.to - g.totalEarned, " XP \u05DC\u05D3\u05E8\u05D2\u05D4 ", lv.level + 1] })] }), (0, jsx_runtime_1.jsx)(ui_1.Progress, { value: ((g.totalEarned - lv.from) / (lv.to - lv.from)) * 100, color: "linear-gradient(90deg,#7048E8,#9775FA)", label: "\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05DC\u05D3\u05E8\u05D2\u05D4 \u05D4\u05D1\u05D0\u05D4" })] }), (0, jsx_runtime_1.jsxs)("div", { className: "hud-stat", children: [(0, jsx_runtime_1.jsxs)("b", { children: [built, "/", maxTotal] }), (0, jsx_runtime_1.jsx)("small", { children: "\u05E9\u05D3\u05E8\u05D5\u05D2\u05D9\u05DD" })] }), (0, jsx_runtime_1.jsxs)("div", { className: 'hud-stat ' + (ready.length ? 'ready' : ''), children: [(0, jsx_runtime_1.jsx)("b", { children: ready.length }), (0, jsx_runtime_1.jsx)("small", { children: "\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05DE\u05D5\u05DB\u05E0\u05D5\u05EA" })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "city-layout", children: [(0, jsx_runtime_1.jsxs)("div", { className: "city-map", role: "list", "aria-label": "\u05DE\u05E4\u05EA \u05D4\u05E2\u05D9\u05E8", children: [(0, jsx_runtime_1.jsxs)("div", { className: "city-sky", children: [(0, jsx_runtime_1.jsx)("span", { className: "cloud c1" }), (0, jsx_runtime_1.jsx)("span", { className: "cloud c2" }), (0, jsx_runtime_1.jsx)("div", { className: "skyline", children: Array.from({ length: Math.min(12, 2 + lv.level * 2) }).map((_, i) => (0, jsx_runtime_1.jsx)("span", { style: { height: 16 + ((i * 37) % 30) + lv.level * 3 } }, i)) })] }), (0, jsx_runtime_1.jsx)("div", { className: "city-grid", children: game_1.BUILDINGS.map(x => {
+    return ((0, jsx_runtime_1.jsxs)("div", { className: "page", children: [(0, jsx_runtime_1.jsx)(ui_1.PageHeader, { title: "\u05D4\u05E2\u05D9\u05E8 \u05E9\u05DC\u05DB\u05DD", sub: "\u05DB\u05DC \u05DE\u05E9\u05D9\u05DE\u05D4 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9\u05EA \u05D1\u05D5\u05E0\u05D4 \u05E2\u05D5\u05D3 \u05E7\u05D5\u05DE\u05D4 \u05D1\u05E2\u05D9\u05E8 \u05D5\u05DE\u05E7\u05E8\u05D1\u05EA \u05D0\u05EA\u05DB\u05DD \u05DC\u05D7\u05D5\u05E4\u05E9 \u05DB\u05DC\u05DB\u05DC\u05D9." }), (0, jsx_runtime_1.jsxs)("div", { className: "home-top", children: [spotlight && (() => {
+                        const m = (0, game_1.nextMission)(s, spotlight);
+                        const [c, t] = m.progress(s);
+                        const r = c >= t;
+                        return ((0, jsx_runtime_1.jsxs)(ui_1.Card, { className: 'spotlight ' + (r ? 'ready' : ''), children: [(0, jsx_runtime_1.jsxs)("div", { className: "sp-head", children: [(0, jsx_runtime_1.jsx)("span", { className: "b-icon", style: { background: spotlight.color + '22' }, children: spotlight.icon }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsxs)("small", { className: "muted", children: [r ? 'משימה מוכנה!' : 'הצעד הבא שלכם', " \u00B7 ", spotlight.name] }), (0, jsx_runtime_1.jsx)("h2", { children: m.title })] }), (0, jsx_runtime_1.jsxs)(ui_1.Badge, { tone: r ? 'gold' : 'gray', children: ["+", m.xp, " XP"] })] }), (0, jsx_runtime_1.jsx)("p", { className: "muted", children: m.desc }), (0, jsx_runtime_1.jsx)(ui_1.Progress, { value: (c / t) * 100, color: r ? '#2F9E77' : spotlight.color, label: m.title }), (0, jsx_runtime_1.jsxs)("div", { className: "row-between sp-foot", children: [(0, jsx_runtime_1.jsxs)("small", { className: "muted", children: [c, " / ", t] }), (0, jsx_runtime_1.jsxs)("span", { className: "row-gap", children: [action(spotlight), (0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: () => { setSel(spotlight.id); document.querySelector('.city-layout')?.scrollIntoView({ behavior: 'smooth' }); }, children: "\u05DC\u05D1\u05E0\u05D9\u05D9\u05DF" })] })] })] }));
+                    })(), (0, jsx_runtime_1.jsxs)(ui_1.Card, { className: "month-mini", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "gold", icon: "plus", onClick: () => st.openAddExpense(), children: "\u05D4\u05D5\u05E1\u05E4\u05EA \u05D4\u05D5\u05E6\u05D0\u05D4" }), (0, jsx_runtime_1.jsxs)("div", { className: "mm-row", children: [(0, jsx_runtime_1.jsx)("span", { children: "\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA \u05D4\u05D7\u05D5\u05D3\u05E9" }), (0, jsx_runtime_1.jsx)("b", { children: (0, format_1.nis)(month.income) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "mm-row", children: [(0, jsx_runtime_1.jsx)("span", { children: "\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05D4\u05D7\u05D5\u05D3\u05E9" }), (0, jsx_runtime_1.jsx)("b", { children: (0, format_1.nis)(month.expenses) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "mm-row strong", children: [(0, jsx_runtime_1.jsx)("span", { children: "\u05E0\u05E9\u05D0\u05E8" }), (0, jsx_runtime_1.jsx)("b", { className: month.income - month.expenses < 0 ? 'neg' : '', children: (0, format_1.nis)(month.income - month.expenses) })] }), (0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: () => st.go('home'), children: "\u05DC\u05E1\u05D9\u05DB\u05D5\u05DD \u05D4\u05D7\u05D5\u05D3\u05E9 \u05D4\u05DE\u05DC\u05D0" })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "city-hud", children: [(0, jsx_runtime_1.jsxs)("div", { className: "hud-rank", children: [(0, jsx_runtime_1.jsx)("div", { className: "lvl-badge", children: lv.level }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("small", { children: "\u05D3\u05E8\u05D2\u05EA \u05D4\u05E2\u05D9\u05E8" }), (0, jsx_runtime_1.jsx)("strong", { children: lv.name })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "hud-xp", children: [(0, jsx_runtime_1.jsxs)("div", { className: "row-between", children: [(0, jsx_runtime_1.jsxs)("small", { children: [g.totalEarned, " XP"] }), (0, jsx_runtime_1.jsxs)("small", { children: ["\u05E2\u05D5\u05D3 ", lv.to - g.totalEarned, " XP \u05DC\u05D3\u05E8\u05D2\u05D4 ", lv.level + 1] })] }), (0, jsx_runtime_1.jsx)(ui_1.Progress, { value: ((g.totalEarned - lv.from) / (lv.to - lv.from)) * 100, color: "linear-gradient(90deg,#7048E8,#9775FA)", label: "\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05DC\u05D3\u05E8\u05D2\u05D4 \u05D4\u05D1\u05D0\u05D4" })] }), (0, jsx_runtime_1.jsxs)("div", { className: "hud-stat", children: [(0, jsx_runtime_1.jsxs)("b", { children: [built, "/", maxTotal] }), (0, jsx_runtime_1.jsx)("small", { children: "\u05E9\u05D3\u05E8\u05D5\u05D2\u05D9\u05DD" })] }), (0, jsx_runtime_1.jsxs)("div", { className: 'hud-stat ' + (ready.length ? 'ready' : ''), children: [(0, jsx_runtime_1.jsx)("b", { children: ready.length }), (0, jsx_runtime_1.jsx)("small", { children: "\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05DE\u05D5\u05DB\u05E0\u05D5\u05EA" })] })] }), (0, jsx_runtime_1.jsxs)("div", { className: "city-layout", children: [(0, jsx_runtime_1.jsxs)("div", { className: "city-map", role: "list", "aria-label": "\u05DE\u05E4\u05EA \u05D4\u05E2\u05D9\u05E8", children: [(0, jsx_runtime_1.jsxs)("div", { className: "city-sky", children: [(0, jsx_runtime_1.jsx)("span", { className: "cloud c1" }), (0, jsx_runtime_1.jsx)("span", { className: "cloud c2" }), (0, jsx_runtime_1.jsx)("div", { className: "skyline", children: Array.from({ length: Math.min(12, 2 + lv.level * 2) }).map((_, i) => (0, jsx_runtime_1.jsx)("span", { style: { height: 16 + ((i * 37) % 30) + lv.level * 3 } }, i)) })] }), (0, jsx_runtime_1.jsx)("div", { className: "city-grid", children: game_1.BUILDINGS.map(x => {
                                     const level = (0, game_1.bLevel)(s, x.id), locked = lv.level < x.unlock, isReady = (0, game_1.missionReady)(s, x);
                                     return ((0, jsx_runtime_1.jsxs)("button", { role: "listitem", className: `lot ${x.id === 'gate' ? 'gate-lot' : ''} ${sel === x.id ? 'sel' : ''} ${locked ? 'locked' : ''} ${celebrate === x.id ? 'boom' : ''}`, onClick: () => setSel(x.id), "aria-label": `${x.name} – ${locked ? `נפתח בדרגה ${x.unlock}` : `רמה ${level} מתוך ${game_1.MAX_LEVEL}`}${isReady ? ' – משימה מוכנה' : ''}`, children: [isReady && (0, jsx_runtime_1.jsx)("span", { className: "lot-alert", children: "!" }), (0, jsx_runtime_1.jsx)(BuildingArt, { b: x, level: level, locked: locked }), (0, jsx_runtime_1.jsx)("span", { className: "lot-name", children: x.name }), (0, jsx_runtime_1.jsx)("span", { className: "pips", children: locked ? (0, jsx_runtime_1.jsxs)("small", { children: ["\u05D3\u05E8\u05D2\u05D4 ", x.unlock] }) : Array.from({ length: game_1.MAX_LEVEL }).map((_, i) => (0, jsx_runtime_1.jsx)("i", { className: i < level ? 'on' : '' }, i)) })] }, x.id));
                                 }) }), (0, jsx_runtime_1.jsxs)("div", { className: "city-street", children: [(0, jsx_runtime_1.jsx)("span", { children: "\uD83D\uDE97" }), (0, jsx_runtime_1.jsx)("span", { children: "\uD83D\uDE8C" })] })] }), (0, jsx_runtime_1.jsxs)(ui_1.Card, { className: "b-panel", children: [(0, jsx_runtime_1.jsxs)("div", { className: "b-head", children: [(0, jsx_runtime_1.jsx)("span", { className: "b-icon", style: { background: b.color + '22' }, children: b.icon }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h3", { children: b.name }), (0, jsx_runtime_1.jsx)("p", { className: "muted small", children: b.about })] })] }), lv.level < b.unlock ? (0, jsx_runtime_1.jsxs)("div", { className: "alert alert-info", children: ["\uD83D\uDD12 \u05D4\u05DE\u05D2\u05E8\u05E9 \u05D9\u05D9\u05E4\u05EA\u05D7 \u05DB\u05E9\u05D4\u05E2\u05D9\u05E8 \u05EA\u05D2\u05D9\u05E2 \u05DC\u05D3\u05E8\u05D2\u05D4 ", b.unlock, ". \u05D4\u05DE\u05E9\u05D9\u05DB\u05D5 \u05DC\u05D4\u05E9\u05DC\u05D9\u05DD \u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05D1\u05D1\u05E0\u05D9\u05D9\u05E0\u05D9\u05DD \u05D4\u05E4\u05EA\u05D5\u05D7\u05D9\u05DD."] }) : (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("div", { className: "b-levels", children: b.missions.map((m, i) => {
@@ -21307,19 +21413,12 @@ function GamePage() {
                                             const done = i < level, cur = i === level;
                                             const [c, t] = m.progress(s);
                                             return ((0, jsx_runtime_1.jsxs)("div", { className: 'mission ' + (done ? 'done' : cur ? 'cur' : 'later'), children: [(0, jsx_runtime_1.jsx)("span", { className: "m-num", children: done ? '✓' : i + 1 }), (0, jsx_runtime_1.jsxs)("div", { className: "m-body", children: [(0, jsx_runtime_1.jsx)("strong", { children: m.title }), cur && m.desc && (0, jsx_runtime_1.jsx)("small", { children: m.desc }), (cur || done) && (0, jsx_runtime_1.jsxs)("small", { className: "m-why", children: ["\uD83C\uDF05 ", m.why] }), cur && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)(ui_1.Progress, { value: (c / t) * 100, color: c >= t ? '#2F9E77' : b.color, label: m.title }), (0, jsx_runtime_1.jsxs)("small", { className: "muted", children: [c, " / ", t] })] })] }), (0, jsx_runtime_1.jsxs)(ui_1.Badge, { tone: done ? 'green' : 'gray', children: ["+", m.xp, " XP"] })] }, i));
-                                        }) }), (() => {
-                                        const m = (0, game_1.nextMission)(s, b);
-                                        if (!m)
-                                            return (0, jsx_runtime_1.jsx)("div", { className: "alert alert-ok", children: "\uD83C\uDFDB\uFE0F \u05D4\u05D1\u05E0\u05D9\u05D9\u05DF \u05D1\u05E8\u05DE\u05D4 \u05D4\u05DE\u05E7\u05E1\u05D9\u05DE\u05DC\u05D9\u05EA. \u05DB\u05DC \u05D4\u05DB\u05D1\u05D5\u05D3!" });
-                                        return (0, game_1.missionReady)(s, b) ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "gold", icon: "check", onClick: () => complete(b), children: "\u05D4\u05E9\u05DC\u05DE\u05EA \u05D4\u05DE\u05E9\u05D9\u05DE\u05D4 \u05D5\u05E9\u05D3\u05E8\u05D5\u05D2 \u05D4\u05D1\u05E0\u05D9\u05D9\u05DF" })
-                                            : m.self ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "soft", icon: "check", onClick: () => st.mutate(d => { d.game.stats[m.self] = 1; }, 'סומן – עכשיו אפשר להשלים את המשימה'), children: "\u05D1\u05D9\u05E6\u05E2\u05EA\u05D9 \u2013 \u05E1\u05D9\u05DE\u05D5\u05DF" })
-                                                : m.go ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "soft", onClick: () => goTo(m.go.page), children: m.go.label }) : null;
-                                    })(), b.id === 'library' && (0, jsx_runtime_1.jsxs)(ui_1.Btn, { kind: "ghost", onClick: openQuiz, disabled: quizLeft <= 0, children: ["\uD83D\uDCDA \u05E9\u05D0\u05DC\u05EA \u05D9\u05D3\u05E2 (", quizLeft, " \u05E0\u05D5\u05EA\u05E8\u05D5 \u05D4\u05D9\u05D5\u05DD)"] })] })] })] }), (0, jsx_runtime_1.jsxs)(ui_1.Card, { title: "\u05DC\u05D5\u05D7 \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05E9\u05DC \u05D4\u05E2\u05D9\u05E8\u05D9\u05D9\u05D4", children: [(0, jsx_runtime_1.jsx)("div", { className: "mission-board", children: game_1.BUILDINGS.filter(x => lv.level >= x.unlock && (0, game_1.nextMission)(s, x)).sort((a, c) => Number((0, game_1.missionReady)(s, c)) - Number((0, game_1.missionReady)(s, a))).map(x => {
+                                        }) }), (0, game_1.nextMission)(s, b) ? action(b) : (0, jsx_runtime_1.jsx)("div", { className: "alert alert-ok", children: "\uD83C\uDFDB\uFE0F \u05D4\u05D1\u05E0\u05D9\u05D9\u05DF \u05D1\u05E8\u05DE\u05D4 \u05D4\u05DE\u05E7\u05E1\u05D9\u05DE\u05DC\u05D9\u05EA. \u05DB\u05DC \u05D4\u05DB\u05D1\u05D5\u05D3!" }), b.id === 'library' && (0, jsx_runtime_1.jsxs)(ui_1.Btn, { kind: "ghost", onClick: openQuiz, disabled: quizLeft <= 0, children: ["\uD83D\uDCDA \u05E9\u05D0\u05DC\u05EA \u05D9\u05D3\u05E2 (", quizLeft, " \u05E0\u05D5\u05EA\u05E8\u05D5 \u05D4\u05D9\u05D5\u05DD)"] })] })] })] }), (0, jsx_runtime_1.jsxs)(ui_1.Card, { title: "\u05DC\u05D5\u05D7 \u05D4\u05DE\u05E9\u05D9\u05DE\u05D5\u05EA \u05E9\u05DC \u05D4\u05E2\u05D9\u05E8\u05D9\u05D9\u05D4", children: [(0, jsx_runtime_1.jsx)("div", { className: "mission-board", children: game_1.BUILDINGS.filter(x => lv.level >= x.unlock && (0, game_1.nextMission)(s, x)).sort((a, c) => Number((0, game_1.missionReady)(s, c)) - Number((0, game_1.missionReady)(s, a))).map(x => {
                             const m = (0, game_1.nextMission)(s, x);
                             const [c, t] = m.progress(s);
                             const r = c >= t;
                             return ((0, jsx_runtime_1.jsxs)("button", { className: 'mb-item ' + (r ? 'ready' : ''), onClick: () => { setSel(x.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }, children: [(0, jsx_runtime_1.jsx)("span", { className: "mb-icon", children: x.icon }), (0, jsx_runtime_1.jsxs)("span", { className: "mb-text", children: [(0, jsx_runtime_1.jsx)("strong", { children: m.title }), (0, jsx_runtime_1.jsxs)("small", { children: [x.name, " \u00B7 \u05E8\u05DE\u05D4 ", (0, game_1.bLevel)(s, x.id) + 1] }), (0, jsx_runtime_1.jsx)(ui_1.Progress, { value: (c / t) * 100, color: r ? '#2F9E77' : x.color, label: m.title })] }), r ? (0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: "gold", children: "\u05DE\u05D5\u05DB\u05DF!" }) : (0, jsx_runtime_1.jsxs)(ui_1.Badge, { children: ["+", m.xp] })] }, x.id));
-                        }) }), game_1.BUILDINGS.some(x => lv.level < x.unlock) && (0, jsx_runtime_1.jsxs)("p", { className: "muted small", children: ["\uD83D\uDD12 \u05E2\u05D5\u05D3 ", game_1.BUILDINGS.filter(x => lv.level < x.unlock).length, " \u05DE\u05D2\u05E8\u05E9\u05D9\u05DD \u05D9\u05D9\u05E4\u05EA\u05D7\u05D5 \u05D1\u05D3\u05E8\u05D2\u05D5\u05EA \u05D4\u05D1\u05D0\u05D5\u05EA."] })] }), (0, jsx_runtime_1.jsx)("div", { className: "tabs", role: "tablist", children: [['tasks', 'משימות שוטפות'], ['achievements', 'הישגים'], ['log', 'יומן העיר']].map(([k, l]) => (0, jsx_runtime_1.jsx)("button", { role: "tab", "aria-selected": tab === k, className: tab === k ? 'on' : '', onClick: () => setTab(k), children: l }, k)) }), tab === 'tasks' && (0, jsx_runtime_1.jsx)(RecurringTasks, {}), tab === 'achievements' && (0, jsx_runtime_1.jsx)("div", { className: "ach-grid", children: game_1.ACHIEVEMENTS.map(a => {
+                        }) }), game_1.BUILDINGS.some(x => lv.level < x.unlock) && (0, jsx_runtime_1.jsxs)("p", { className: "muted small", children: ["\uD83D\uDD12 \u05E2\u05D5\u05D3 ", game_1.BUILDINGS.filter(x => lv.level < x.unlock).length, " \u05DE\u05D2\u05E8\u05E9\u05D9\u05DD \u05D9\u05D9\u05E4\u05EA\u05D7\u05D5 \u05D1\u05D3\u05E8\u05D2\u05D5\u05EA \u05D4\u05D1\u05D0\u05D5\u05EA."] })] }), (0, jsx_runtime_1.jsx)(Freedom_1.FreedomPanel, {}), (0, jsx_runtime_1.jsx)("div", { className: "tabs", role: "tablist", children: [['tasks', 'משימות שוטפות'], ['achievements', 'הישגים'], ['log', 'יומן העיר']].map(([k, l]) => (0, jsx_runtime_1.jsx)("button", { role: "tab", "aria-selected": tab === k, className: tab === k ? 'on' : '', onClick: () => setTab(k), children: l }, k)) }), tab === 'tasks' && (0, jsx_runtime_1.jsx)(RecurringTasks, {}), tab === 'achievements' && (0, jsx_runtime_1.jsx)("div", { className: "ach-grid", children: game_1.ACHIEVEMENTS.map(a => {
                     const on = g.achievements.includes(a.id);
                     return ((0, jsx_runtime_1.jsxs)("div", { className: 'ach ' + (on ? 'on' : ''), children: [(0, jsx_runtime_1.jsx)("span", { children: on ? a.icon : '🔒' }), (0, jsx_runtime_1.jsx)("strong", { children: a.name }), (0, jsx_runtime_1.jsx)("small", { children: a.desc })] }, a.id));
                 }) }), tab === 'log' && (0, jsx_runtime_1.jsx)(ui_1.Card, { title: "\u05D9\u05D5\u05DE\u05DF \u05D4\u05E2\u05D9\u05E8", children: g.pointLog.length ? (0, jsx_runtime_1.jsx)("ul", { className: "hist", children: g.pointLog.slice(0, 30).map((p, i) => (0, jsx_runtime_1.jsxs)("li", { children: [(0, jsx_runtime_1.jsx)("span", { children: new Date(p.ts).toLocaleDateString('he-IL') }), (0, jsx_runtime_1.jsx)("span", { children: p.reason }), (0, jsx_runtime_1.jsxs)("b", { children: ["+", p.pts] })] }, i)) }) : (0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05E2\u05D5\u05D3 \u05D0\u05D9\u05DF \u05E4\u05E2\u05D9\u05DC\u05D5\u05EA. \u05D4\u05E9\u05DC\u05D9\u05DE\u05D5 \u05DE\u05E9\u05D9\u05DE\u05D4 \u05E8\u05D0\u05E9\u05D5\u05E0\u05D4!" }) }), (0, jsx_runtime_1.jsx)("p", { className: "muted small center", children: "\u05D4\u05DE\u05E9\u05D7\u05E7 \u05D5\u05D9\u05E8\u05D8\u05D5\u05D0\u05DC\u05D9 \u05D1\u05DC\u05D1\u05D3: \u05D4\u05D5\u05D0 \u05DE\u05EA\u05D2\u05DE\u05DC \u05DE\u05D5\u05D3\u05E2\u05D5\u05EA \u05D5\u05D4\u05EA\u05DE\u05D3\u05D4 \u2013 \u05DC\u05D0 \u05D0\u05EA \u05D2\u05D5\u05D1\u05D4 \u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u2013 \u05D5\u05DC\u05D0 \u05DE\u05E9\u05E4\u05D9\u05E2 \u05E2\u05DC \u05D4\u05DB\u05E1\u05E3 \u05D4\u05D0\u05DE\u05D9\u05EA\u05D9. \u05D0\u05D9\u05DF \u05D4\u05D9\u05DE\u05D5\u05E8\u05D9\u05DD." }), (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: !!quiz, onClose: () => setQuiz(null), title: "\uD83D\uDCDA \u05E9\u05D0\u05DC\u05EA \u05D9\u05D3\u05E2 \u05DE\u05D4\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4", children: quiz && (0, jsx_runtime_1.jsxs)("div", { className: "quiz", children: [(0, jsx_runtime_1.jsx)("p", { className: "quiz-q", children: quiz.q }), quiz.options.map((o, i) => (0, jsx_runtime_1.jsx)("button", { className: 'quiz-opt ' + (quiz.answer !== undefined ? (i === quiz.correct ? 'right' : i === quiz.answer ? 'wrong' : '') : ''), disabled: quiz.answer !== undefined, onClick: () => answer(i), children: o }, i)), quiz.answer !== undefined && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("p", { className: "quiz-ex", children: ["\uD83D\uDCA1 ", quiz.explain] }), (0, jsx_runtime_1.jsxs)("div", { className: "row-end", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => setQuiz(null), children: "\u05E1\u05D2\u05D9\u05E8\u05D4" }), quizLeft > 0 && (0, jsx_runtime_1.jsx)(ui_1.Btn, { onClick: openQuiz, children: "\u05E9\u05D0\u05DC\u05D4 \u05E0\u05D5\u05E1\u05E4\u05EA" })] })] })] }) })] }));
@@ -21336,7 +21435,7 @@ function RecurringTasks() {
                 }), (0, jsx_runtime_1.jsxs)("p", { className: "muted small", children: ["\u05E8\u05E9\u05D5\u05EA \u05D1\u05DC\u05D1\u05D3. \u05DE\u05EA\u05D7\u05D3\u05E9\u05D5\u05EA \u05D1\u05DB\u05DC ", p === 'daily' ? 'יום' : p === 'weekly' ? 'שבוע' : 'חודש', "."] })] }, p))) });
 }
 
-},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../lib/game":15,"../lib/format":17,"../components/Freedom":35}];
+},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../lib/game":15,"../lib/format":17,"../lib/finance":16,"../components/Freedom":35}];
 defs[38]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
