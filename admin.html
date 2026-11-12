@@ -11,6 +11,7 @@ main{max-width:1100px;margin:0 auto;padding:22px}
 .kpi{background:#fff;border-radius:16px;padding:16px;box-shadow:0 4px 18px rgba(0,0,0,.06)}
 .kpi b{display:block;font-size:1.8rem}
 .kpi span{color:#6b7a86;font-size:.9rem}
+.stale{background:#FFF6DC;border-radius:12px;padding:12px 16px;margin:12px 0}
 table{width:100%;border-collapse:collapse;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(0,0,0,.06)}
 th,td{padding:10px 12px;border-bottom:1px solid #EEF1EC;text-align:right;font-size:.92rem}
 th{background:#F7F8F5;color:#4A5A68}
@@ -48,6 +49,7 @@ input{padding:10px;border-radius:10px;border:1.5px solid #D5DBD3;font:inherit;mi
     users.sort(function (a, b) { return String(b.createdAt || '').localeCompare(String(a.createdAt || '')); });
     var act7 = users.filter(function (u) { return daysAgo(u.lastActive) <= 7; }).length, act30 = users.filter(function (u) { return daysAgo(u.lastActive) <= 30; }).length;
     var cons = users.filter(function (u) { return u.marketingConsent; });
+    var stale = users.filter(function (u) { return daysAgo(u.lastActive) > 730 && daysAgo(u.createdAt) > 730; });
     main.innerHTML = '<div class="kpis">' +
       '<div class="kpi"><b>' + users.length + '</b><span>נרשמו סה״כ</span></div>' +
       '<div class="kpi"><b>' + act7 + '</b><span>פעילים ב-7 ימים</span></div>' +
@@ -55,6 +57,7 @@ input{padding:10px;border-radius:10px;border:1.5px solid #D5DBD3;font:inherit;mi
       '<div class="kpi"><b>' + cons.length + '</b><span>הסכימו לקבל מיילים</span></div></div>' +
       '<div class="row"><input id="q" placeholder="חיפוש לפי מייל או שם"><button class="btn ghost" id="csv">העתקת רשימת מיילים (רק מי שהסכים)</button><span class="muted" id="msg"></span></div>' +
       '<table><thead><tr><th>מייל</th><th class="hide-sm">שם</th><th>נרשם/ה</th><th>פעילות אחרונה</th><th class="hide-sm">דרגת העיר</th><th class="hide-sm">שלב בדרך לחופש</th><th class="hide-sm">מיילים</th></tr></thead><tbody id="tb"></tbody></table>' +
+      (stale.length ? '<div class="stale"><b>' + stale.length + ' חשבונות לא היו פעילים יותר מ-24 חודשים.</b> לפי מדיניות השמירה יש למחוק אותם. <button class="btn" id="purge">מחיקת הרשומות שלהם</button><span class="muted" id="pmsg"></span></div>' : '<p class="muted">✓ אין חשבונות שעברו את תקופת השמירה (24 חודשים ללא פעילות).</p>') +
       '<p class="muted" style="margin-top:14px">🔒 כאן מופיעים רק פרטי חשבון והתקדמות. הנתונים הפיננסיים של המשתמשים לא נשמרים בשרת ואינם זמינים כאן. להסרת משתמש לפי בקשה: Firebase → Authentication ו-Firestore → users.</p>';
     function rows(f) {
       document.getElementById('tb').innerHTML = users.filter(function (u) { return !f || (String(u.email) + ' ' + String(u.name)).toLowerCase().indexOf(f) >= 0; }).map(function (u) {
@@ -63,6 +66,16 @@ input{padding:10px;border-radius:10px;border:1.5px solid #D5DBD3;font:inherit;mi
       }).join('') || '<tr><td colspan="7" class="muted">אין משתמשים עדיין.</td></tr>';
     }
     rows('');
+    var pb = document.getElementById('purge');
+    if (pb) pb.onclick = function () {
+      if (!confirm('למחוק ' + stale.length + ' רשומות של חשבונות לא פעילים? לא ניתן לבטל.')) return;
+      pb.disabled = true;
+      Promise.all(stale.map(function (u) { return db.collection('users').doc(u.id).delete(); })).then(function () {
+        var list = stale.map(function (u) { return u.email; }).join('\n');
+        document.getElementById('pmsg').textContent = ' הרשומות נמחקו. עכשיו מחקו את אותם משתמשים גם ב-Firebase Console → Authentication. הרשימה הועתקה.';
+        try { navigator.clipboard.writeText(list); } catch (e) {}
+      }).catch(function () { document.getElementById('pmsg').textContent = ' המחיקה נכשלה. ודאו שחוקי Firestore כוללים הרשאת מחיקה למנהל.'; pb.disabled = false; });
+    };
     document.getElementById('q').oninput = function (e) { rows(e.target.value.trim().toLowerCase()); };
     document.getElementById('csv').onclick = function () {
       var t = cons.map(function (u) { return u.email; }).join(', ');
