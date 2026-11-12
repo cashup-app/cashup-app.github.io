@@ -756,6 +756,19 @@ html.simple .btn{min-height:54px}
 .terms-notice .btn{flex:none}
 .legal-line{margin-top:14px;text-align:center}
 @media (max-width:900px){.terms-notice{margin:0 14px 10px;flex-direction:column;align-items:stretch}}
+
+/* expense attachments */
+.attach{display:flex;flex-direction:column;gap:6px}
+.att-row{display:flex;flex-wrap:wrap;gap:10px}
+.att-thumb{position:relative;width:76px;height:76px}
+.att-img{width:100%;height:100%;padding:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;cursor:zoom-in}
+.att-img img{width:100%;height:100%;object-fit:cover;display:block}
+.att-missing{display:grid;place-items:center;height:100%;font-size:1.6rem}
+.att-x{position:absolute;top:-8px;left:-8px;width:26px;height:26px;border-radius:50%;border:2px solid #fff;background:#0C2D27;color:#fff;font-size:.8rem;cursor:pointer;line-height:1}
+.att-add{width:150px;height:76px;border:2px dashed var(--line);border-radius:10px;background:transparent;color:var(--ink-2);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:inherit}
+.att-add b{font-size:1.5rem;line-height:1;color:var(--brand-2)}.att-add:hover{border-color:#C9A45C}
+.att-full{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-radius:8px}
+.att-badge{border:1px solid var(--line);background:#fff;border-radius:999px;padding:1px 8px;font-size:.85rem;cursor:pointer}
 /*PREMIUM-START*/
 /* ================= Premium layer: "banknote" identity ================= */
 :root{--brass:#C9A45C;--brass-hi:#E2C788;--brass-lo:#9C7A36;--note:#0C2D27;--note-2:#123E36;--cream-ink:#EFE8D6;
@@ -18282,7 +18295,7 @@ function Welcome() {
     return ((0, jsx_runtime_1.jsx)(ui_1.Modal, { open: true, onClose: () => done(false), title: "\u05D1\u05E8\u05D5\u05DB\u05D9\u05DD \u05D4\u05D1\u05D0\u05D9\u05DD \u05DC-CashUp \uD83C\uDF05", children: (0, jsx_runtime_1.jsxs)("div", { className: "welcome", children: [(0, jsx_runtime_1.jsx)("p", { className: "lead", children: "\u05D1\u05D5\u05E0\u05D9\u05DD \u05E2\u05D9\u05E8 \u05E7\u05D8\u05E0\u05D4 \u2013 \u05D5\u05D1\u05D3\u05E8\u05DA \u05DE\u05D2\u05D9\u05E2\u05D9\u05DD \u05DC\u05D7\u05D5\u05E4\u05E9 \u05DB\u05DC\u05DB\u05DC\u05D9. \u05DB\u05DC \u05DE\u05E9\u05D9\u05DE\u05D4 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9\u05EA \u05E9\u05EA\u05E9\u05DC\u05D9\u05DE\u05D5 \u05DE\u05E9\u05D3\u05E8\u05D2\u05EA \u05D0\u05EA \u05D4\u05E2\u05D9\u05E8 \u05E9\u05DC\u05DB\u05DD." }), (0, jsx_runtime_1.jsxs)("ul", { className: "welcome-list", children: [(0, jsx_runtime_1.jsxs)("li", { children: ["\uD83D\uDD12 ", (0, jsx_runtime_1.jsx)("b", { children: "\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD \u05D0\u05E6\u05DC\u05DB\u05DD." }), " \u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA, \u05D4\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA \u05D5\u05D4\u05D7\u05E1\u05DB\u05D5\u05E0\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4. \u05D7\u05E9\u05D1\u05D5\u05DF (\u05E8\u05E9\u05D5\u05EA) \u05E9\u05D5\u05DE\u05E8 \u05E8\u05E7 \u05DE\u05D9\u05D9\u05DC \u05D5\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA."] }), (0, jsx_runtime_1.jsx)("li", { children: "\uD83D\uDCBE \u05DE\u05D5\u05DE\u05DC\u05E5 \u05DC\u05D2\u05D1\u05D5\u05EA \u05DE\u05D3\u05D9 \u05E4\u05E2\u05DD (\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u2190 \u05D2\u05D9\u05D1\u05D5\u05D9), \u05DB\u05D9 \u05DE\u05D7\u05D9\u05E7\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05DE\u05D5\u05D7\u05E7\u05EA \u05D2\u05DD \u05D0\u05EA \u05D4\u05DE\u05D9\u05D3\u05E2." }), (0, jsx_runtime_1.jsx)("li", { children: "\uD83E\uDDED \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05E2\u05D5\u05D6\u05E8\u05EA \u05DC\u05E2\u05E9\u05D5\u05EA \u05E1\u05D3\u05E8 \u05D5\u05DC\u05D4\u05D1\u05D9\u05DF \u2013 \u05D4\u05D9\u05D0 \u05DC\u05D0 \u05D9\u05D9\u05E2\u05D5\u05E5 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9." })] }), (0, jsx_runtime_1.jsxs)("div", { className: "welcome-actions", children: [(0, account_1.accountsEnabled)() && (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "gold", onClick: () => { done(true); st.openAccount(); }, children: "\u05D9\u05E6\u05D9\u05E8\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF \u05D5\u05D4\u05EA\u05D7\u05DC\u05D4" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: (0, account_1.accountsEnabled)() ? 'soft' : 'gold', icon: "plus", onClick: () => done(true), children: (0, account_1.accountsEnabled)() ? 'להתחיל בלי חשבון' : 'להתחיל מאפס עם הנתונים שלי' }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "ghost", onClick: () => done(false), children: "\u05DC\u05D4\u05E6\u05D9\u05E5 \u05E7\u05D5\u05D3\u05DD \u05E2\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D3\u05D5\u05D2\u05DE\u05D4" })] }), (0, jsx_runtime_1.jsxs)("p", { className: "muted small legal-line", children: ["\u05D1\u05DC\u05D7\u05D9\u05E6\u05D4 \u05E2\u05DC \u05D0\u05D7\u05D3 \u05D4\u05DB\u05E4\u05EA\u05D5\u05E8\u05D9\u05DD \u05D0\u05EA\u05DD \u05DE\u05D0\u05E9\u05E8\u05D9\u05DD \u05E9\u05E7\u05E8\u05D0\u05EA\u05DD \u05D5\u05DE\u05E1\u05DB\u05D9\u05DE\u05D9\u05DD \u05DC", (0, jsx_runtime_1.jsx)("a", { href: "terms.html", target: "_blank", rel: "noopener", children: "\u05EA\u05E0\u05D0\u05D9 \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9" }), " \u05D5\u05DC", (0, jsx_runtime_1.jsx)("a", { href: "privacy.html", target: "_blank", rel: "noopener", children: "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA" }), ". \u05D4\u05DE\u05D9\u05D3\u05E2 \u05D1\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05DB\u05DC\u05DC\u05D9 \u05D1\u05DC\u05D1\u05D3, \u05D5\u05DB\u05DC \u05D4\u05D7\u05DC\u05D8\u05D4 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9\u05EA \u05D4\u05D9\u05D0 \u05D1\u05D0\u05D7\u05E8\u05D9\u05D5\u05EA\u05DB\u05DD."] })] }) }));
 }
 
-},{"react/jsx-runtime":1,"react":7,"./store":12,"./components/ui":23,"./components/CheckIn":24,"./components/Share":27,"./components/Account":28,"./lib/account":22,"./components/ExpenseForm":30,"./lib/game":15,"./lib/notifications":31,"./lib/format":17,"./pages/Dashboard":32,"./pages/Game":37,"./pages/Expenses":38,"./pages/Analysis":39,"./pages/Coach":40,"./pages/Alternatives":41,"./pages/Goals":42,"./pages/Reports":43,"./pages/Settings":44}];
+},{"react/jsx-runtime":1,"react":7,"./store":12,"./components/ui":23,"./components/CheckIn":24,"./components/Share":27,"./components/Account":28,"./lib/account":22,"./components/ExpenseForm":30,"./lib/game":15,"./lib/notifications":33,"./lib/format":17,"./pages/Dashboard":34,"./pages/Game":39,"./pages/Expenses":40,"./pages/Analysis":41,"./pages/Coach":42,"./pages/Alternatives":43,"./pages/Goals":44,"./pages/Reports":45,"./pages/Settings":46}];
 defs[12]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -19601,7 +19614,7 @@ function applyRecurring(s) {
         if (date > today)
             continue;
         s.visits['auto:' + k] = cm;
-        const n = { ...t, id: (0, format_1.uid)(), date, createdAt: Date.now(), source: 'manual', notes: 'נוסף אוטומטית כתשלום קבוע', receiptId: undefined };
+        const n = { ...t, id: (0, format_1.uid)(), date, createdAt: Date.now(), source: 'manual', notes: 'נוסף אוטומטית כתשלום קבוע', receiptId: undefined, attachments: undefined };
         if (n.kind === 'saving') {
             n.depositId = undefined;
             (0, savings_1.applySaving)(s, n, false);
@@ -20636,6 +20649,8 @@ exports.ExpenseModal = ExpenseModal;
 const jsx_runtime_1 = require("react/jsx-runtime");
 const react_1 = require("react");
 const store_1 = require("../store");
+const Attachments_1 = require("./Attachments");
+const images_1 = require("../lib/images");
 const ui_1 = require("./ui");
 const categories_1 = require("../lib/categories");
 const format_1 = require("../lib/format");
@@ -20657,6 +20672,8 @@ function FullForm({ editing }) {
     const [amountStr, setAmountStr] = (0, react_1.useState)(t.amount ? String(t.amount) : '');
     const [err, setErr] = (0, react_1.useState)({});
     const [dupWarn, setDupWarn] = (0, react_1.useState)(null);
+    const [att, setAtt] = (0, react_1.useState)({ ids: t.attachments || [], pending: [], removed: [] });
+    const [saving, setSaving] = (0, react_1.useState)(false);
     const set = (k, v) => setT(p => ({ ...p, [k]: v }));
     const cats = st.s.categories.filter(c => c.kind === t.kind);
     const quick = (() => {
@@ -20692,8 +20709,10 @@ function FullForm({ editing }) {
         setErr(e);
         return Object.keys(e).length === 0 ? a : null;
     };
-    const submit = (ev, force = false) => {
+    const submit = async (ev, force = false) => {
         ev?.preventDefault();
+        if (saving)
+            return;
         const a = validate();
         if (a === null)
             return;
@@ -20705,12 +20724,26 @@ function FullForm({ editing }) {
                 return;
             }
         }
+        if (att.pending.length || att.removed.length || (t.attachments || []).length !== att.ids.length) {
+            setSaving(true);
+            let added = [];
+            try {
+                added = await Promise.all(att.pending.map(images_1.putImage));
+            }
+            catch {
+                st.toast('לא הצלחנו לשמור את התמונות במכשיר. ההוצאה נשמרה בלעדיהן.', 'warn');
+            }
+            const all = [...att.ids, ...added];
+            rec.attachments = all.length ? all : undefined;
+            (0, images_1.deleteImages)(att.removed);
+            setSaving(false);
+        }
         st.mutate(d => (0, store_1.saveTransaction)(d, rec, !editing), editing ? 'הרשומה עודכנה' : rec.kind === 'expense' ? `ההוצאה נשמרה: ${(0, format_1.nis)(rec.amount)}` : rec.kind === 'saving' ? `🐷 ${(0, format_1.nis)(rec.amount)} נכנסו לחיסכון – כל הכבוד!` : `ההכנסה נשמרה: ${(0, format_1.nis)(rec.amount)}`);
         st.closeAdd();
     };
     if (dupWarn)
         return ((0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsxs)("div", { className: "alert alert-warn", children: [(0, jsx_runtime_1.jsx)("strong", { children: "\u05D9\u05D9\u05EA\u05DB\u05DF \u05E9\u05D6\u05D5 \u05DB\u05E4\u05D9\u05DC\u05D5\u05EA." }), " \u05DB\u05D1\u05E8 \u05E7\u05D9\u05D9\u05DE\u05EA \u05E8\u05E9\u05D5\u05DE\u05D4 \u05E2\u05DD \u05D0\u05D5\u05EA\u05D5 \u05E1\u05DB\u05D5\u05DD \u05D1\u05EA\u05D0\u05E8\u05D9\u05DA \u05E7\u05E8\u05D5\u05D1:"] }), (0, jsx_runtime_1.jsx)("ul", { className: "dup-list", children: dupWarn.map(d => (0, jsx_runtime_1.jsxs)("li", { children: [d.date, " \u00B7 ", d.merchant, " \u00B7 ", (0, format_1.nis)(d.amount), " ", d.isDemo && (0, jsx_runtime_1.jsx)("small", { children: "(\u05D4\u05D3\u05D2\u05DE\u05D4)" })] }, d.id)) }), (0, jsx_runtime_1.jsxs)("div", { className: "row-end", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => setDupWarn(null), children: "\u05D7\u05D6\u05E8\u05D4 \u05DC\u05E2\u05E8\u05D9\u05DB\u05D4" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { onClick: () => submit(null, true), children: "\u05D6\u05D5 \u05D4\u05D5\u05E6\u05D0\u05D4 \u05E0\u05E4\u05E8\u05D3\u05EA \u2013 \u05DC\u05E9\u05DE\u05D5\u05E8" })] })] }));
-    return ((0, jsx_runtime_1.jsxs)("form", { onSubmit: submit, noValidate: true, className: "form-grid", children: [!editing && (0, jsx_runtime_1.jsx)("div", { className: "span2", children: (0, jsx_runtime_1.jsx)(ui_1.Segmented, { value: t.kind, label: "\u05E1\u05D5\u05D2", onChange: v => setT(p => ({ ...p, kind: v, categoryId: v === 'income' ? 'salary' : v === 'saving' ? 'save_emergency' : '', goalId: v === 'saving' ? (0, savings_1.goalsFor)(st.s, 'save_emergency')[0]?.id : undefined, paymentMethod: v === 'saving' ? 'transfer' : p.paymentMethod })), options: [{ v: 'expense', l: 'הוצאה' }, { v: 'income', l: 'הכנסה' }, { v: 'saving', l: '🐷 חיסכון / השקעה' }] }) }), t.kind === 'saving' && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("div", { className: "span2", children: [(0, jsx_runtime_1.jsx)("span", { className: "field-label", children: "\u05DC\u05D0\u05DF \u05D4\u05DB\u05E1\u05E3 \u05D4\u05D5\u05DC\u05DA?" }), (0, jsx_runtime_1.jsx)("div", { className: "kind-cards", children: [['save_emergency', '🛟', 'קרן ביטחון', 'כסף לימים לא צפויים'], ['save_general', '🐷', 'חיסכון', 'ליעד או לכסף בצד'], ['save_invest', '📈', 'השקעה', 'לטווח ארוך']].map(([id, ic, nm, ds]) => (0, jsx_runtime_1.jsxs)("button", { type: "button", className: 'kind-card ' + (t.categoryId === id ? 'on' : ''), onClick: () => setT(p => ({ ...p, categoryId: id, goalId: (0, savings_1.goalsFor)(st.s, id)[0]?.id })), children: [(0, jsx_runtime_1.jsx)("span", { children: ic }), nm, (0, jsx_runtime_1.jsx)("small", { children: ds })] }, id)) })] }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05DC\u05D9\u05E2\u05D3", hint: (0, savings_1.goalsFor)(st.s, t.categoryId).length ? undefined : 'אין עדיין יעד מתאים – ייפתח אחד אוטומטית, ואפשר לערוך אותו אחר כך.', children: (0, jsx_runtime_1.jsxs)("select", { className: "input", value: t.goalId || '', onChange: (e) => set('goalId', e.target.value || undefined), disabled: editing, children: [(0, savings_1.goalsFor)(st.s, t.categoryId).map(g => (0, jsx_runtime_1.jsxs)("option", { value: g.id, children: [g.icon, " ", g.name, g.isDemo ? ' (הדגמה)' : ''] }, g.id)), (0, jsx_runtime_1.jsxs)("option", { value: "", children: ["\u2795 \u05D9\u05E2\u05D3 \u05D7\u05D3\u05E9: ", t.categoryId === 'save_emergency' ? 'קרן ביטחון' : t.categoryId === 'save_invest' ? 'השקעה לטווח ארוך' : 'חיסכון כללי'] })] }) }), t.categoryId === 'save_invest' && (0, jsx_runtime_1.jsx)("p", { className: "span2 small muted", children: "\uD83D\uDCA1 \u05DB\u05D0\u05DF \u05E8\u05E7 \u05DE\u05EA\u05E2\u05D3\u05D9\u05DD \u05DB\u05E1\u05E3 \u05E9\u05D4\u05E9\u05E7\u05E2\u05EA\u05DD \u05D1\u05E2\u05E6\u05DE\u05DB\u05DD (\u05D1\u05D1\u05E0\u05E7, \u05D1\u05D9\u05EA \u05D4\u05E9\u05E7\u05E2\u05D5\u05EA \u05D0\u05D5 \u05E7\u05D5\u05E4\u05EA \u05D2\u05DE\u05DC \u05DC\u05D4\u05E9\u05E7\u05E2\u05D4). \u05DE\u05D5\u05DE\u05DC\u05E5 \u05DC\u05D4\u05E9\u05E7\u05D9\u05E2 \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D9\u05E9 \u05E7\u05E8\u05DF \u05D1\u05D9\u05D8\u05D7\u05D5\u05DF. \u05D6\u05D4 \u05DE\u05D9\u05D3\u05E2 \u05DB\u05DC\u05DC\u05D9, \u05DC\u05D0 \u05D9\u05D9\u05E2\u05D5\u05E5 \u05D4\u05E9\u05E7\u05E2\u05D5\u05EA." })] }), !editing && t.kind === 'expense' && quick.length > 0 && (0, jsx_runtime_1.jsxs)("div", { className: "span2 quick", children: [(0, jsx_runtime_1.jsx)("span", { className: "field-label", children: "\u26A1 \u05D4\u05D5\u05E1\u05E4\u05D4 \u05DE\u05D4\u05D9\u05E8\u05D4" }), (0, jsx_runtime_1.jsx)("div", { className: "chips", children: quick.map(q => (0, jsx_runtime_1.jsxs)("button", { type: "button", className: "chip", onClick: () => { setT(p => ({ ...p, merchant: q.merchant, categoryId: q.categoryId, paymentMethod: q.paymentMethod, description: q.description })); setAmountStr(String(q.amount)); }, children: [(0, finance_1.catById)(st.s, q.categoryId).icon, " ", q.merchant, " \u00B7 ", (0, format_1.nis)(q.amount, true)] }, q.merchant)) })] }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E1\u05DB\u05D5\u05DD (\u20AA) *", error: err.amount, children: (0, jsx_runtime_1.jsx)("input", { inputMode: "decimal", className: "input input-amount", value: amountStr, onChange: (e) => setAmountStr(e.target.value), placeholder: "0", "aria-invalid": !!err.amount }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05EA\u05D0\u05E8\u05D9\u05DA *", error: err.date, children: (0, jsx_runtime_1.jsx)("input", { type: "date", className: "input", value: t.date, onChange: (e) => set('date', e.target.value) }) }), t.kind !== 'saving' && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)(ui_1.Field, { label: t.kind === 'expense' ? 'בית עסק *' : 'מקור ההכנסה *', error: err.merchant, children: [(0, jsx_runtime_1.jsx)("input", { className: "input", value: t.merchant, onChange: (e) => set('merchant', e.target.value), placeholder: t.kind === 'expense' ? 'לדוגמה: סופר השכונה' : 'לדוגמה: מקום העבודה', list: "merchants" }), (0, jsx_runtime_1.jsx)("datalist", { id: "merchants", children: Array.from(new Set(st.s.transactions.map(x => x.merchant))).slice(0, 50).map(m => (0, jsx_runtime_1.jsx)("option", { value: m }, m)) })] }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4 *", error: err.category, children: (0, jsx_runtime_1.jsxs)("select", { className: "input", value: t.categoryId, onChange: (e) => set('categoryId', e.target.value), children: [(0, jsx_runtime_1.jsx)("option", { value: "", children: "\u05D1\u05D7\u05E8\u05D5 \u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4\u2026" }), cats.map(c => (0, jsx_runtime_1.jsxs)("option", { value: c.id, children: [c.icon, " ", c.name] }, c.id))] }) })] }), t.kind !== 'saving' && (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05EA\u05D9\u05D0\u05D5\u05E8 \u05D4\u05DE\u05D5\u05E6\u05E8 \u05D0\u05D5 \u05D4\u05E9\u05D9\u05E8\u05D5\u05EA", children: (0, jsx_runtime_1.jsx)("input", { className: "input", value: t.description, onChange: (e) => set('description', e.target.value), placeholder: "\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4" }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD", children: (0, jsx_runtime_1.jsx)("select", { className: "input", value: t.paymentMethod, onChange: (e) => set('paymentMethod', e.target.value), children: Object.entries(categories_1.PAYMENT_LABELS).map(([k, v]) => (0, jsx_runtime_1.jsx)("option", { value: k, children: v }, k)) }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05D4\u05E2\u05E8\u05D5\u05EA", children: (0, jsx_runtime_1.jsx)("textarea", { className: "input", rows: 2, value: t.notes, onChange: (e) => set('notes', e.target.value), placeholder: "\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4" }) }), (0, jsx_runtime_1.jsxs)("label", { className: "check-row", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: t.recurring, onChange: (e) => set('recurring', e.target.checked) }), " ", (0, jsx_runtime_1.jsxs)("span", { children: [t.kind === 'income' ? 'הכנסה קבועה' : t.kind === 'saving' ? 'הוראת קבע לחיסכון' : 'תשלום קבוע', " (\u05D7\u05D5\u05D6\u05E8 \u05DB\u05DC \u05D7\u05D5\u05D3\u05E9)", st.s.settings.autoRecurring ? (0, jsx_runtime_1.jsx)("small", { className: "block muted", children: "\u05D9\u05D9\u05E8\u05E9\u05DD \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05D1\u05DB\u05DC \u05D7\u05D5\u05D3\u05E9 \u05D1\u05D0\u05D5\u05EA\u05D5 \u05D9\u05D5\u05DD. \u05DC\u05D1\u05D9\u05D8\u05D5\u05DC \u2013 \u05D1\u05D8\u05DC\u05D5 \u05D0\u05EA \u05D4\u05E1\u05D9\u05DE\u05D5\u05DF \u05DB\u05D0\u05DF." }) : null] })] }), editing && (0, jsx_runtime_1.jsxs)("p", { className: "muted span2", children: ["\u05DE\u05E7\u05D5\u05E8 \u05D4\u05E8\u05E9\u05D5\u05DE\u05D4: ", t.source === 'manual' ? 'הזנה ידנית' : t.source === 'receipt' ? 'סריקת קבלה' : t.source === 'bank' ? 'בנק' : 'כרטיס אשראי', t.isDemo ? ' · נתוני הדגמה' : ''] }), (0, jsx_runtime_1.jsxs)("div", { className: "row-end span2", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: st.closeAdd, children: "\u05D1\u05D9\u05D8\u05D5\u05DC" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { type: "submit", icon: "check", big: true, children: editing ? 'שמירת שינויים' : 'שמירה' })] })] }));
+    return ((0, jsx_runtime_1.jsxs)("form", { onSubmit: submit, noValidate: true, className: "form-grid", children: [!editing && (0, jsx_runtime_1.jsx)("div", { className: "span2", children: (0, jsx_runtime_1.jsx)(ui_1.Segmented, { value: t.kind, label: "\u05E1\u05D5\u05D2", onChange: v => setT(p => ({ ...p, kind: v, categoryId: v === 'income' ? 'salary' : v === 'saving' ? 'save_emergency' : '', goalId: v === 'saving' ? (0, savings_1.goalsFor)(st.s, 'save_emergency')[0]?.id : undefined, paymentMethod: v === 'saving' ? 'transfer' : p.paymentMethod })), options: [{ v: 'expense', l: 'הוצאה' }, { v: 'income', l: 'הכנסה' }, { v: 'saving', l: '🐷 חיסכון / השקעה' }] }) }), t.kind === 'saving' && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("div", { className: "span2", children: [(0, jsx_runtime_1.jsx)("span", { className: "field-label", children: "\u05DC\u05D0\u05DF \u05D4\u05DB\u05E1\u05E3 \u05D4\u05D5\u05DC\u05DA?" }), (0, jsx_runtime_1.jsx)("div", { className: "kind-cards", children: [['save_emergency', '🛟', 'קרן ביטחון', 'כסף לימים לא צפויים'], ['save_general', '🐷', 'חיסכון', 'ליעד או לכסף בצד'], ['save_invest', '📈', 'השקעה', 'לטווח ארוך']].map(([id, ic, nm, ds]) => (0, jsx_runtime_1.jsxs)("button", { type: "button", className: 'kind-card ' + (t.categoryId === id ? 'on' : ''), onClick: () => setT(p => ({ ...p, categoryId: id, goalId: (0, savings_1.goalsFor)(st.s, id)[0]?.id })), children: [(0, jsx_runtime_1.jsx)("span", { children: ic }), nm, (0, jsx_runtime_1.jsx)("small", { children: ds })] }, id)) })] }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05DC\u05D9\u05E2\u05D3", hint: (0, savings_1.goalsFor)(st.s, t.categoryId).length ? undefined : 'אין עדיין יעד מתאים – ייפתח אחד אוטומטית, ואפשר לערוך אותו אחר כך.', children: (0, jsx_runtime_1.jsxs)("select", { className: "input", value: t.goalId || '', onChange: (e) => set('goalId', e.target.value || undefined), disabled: editing, children: [(0, savings_1.goalsFor)(st.s, t.categoryId).map(g => (0, jsx_runtime_1.jsxs)("option", { value: g.id, children: [g.icon, " ", g.name, g.isDemo ? ' (הדגמה)' : ''] }, g.id)), (0, jsx_runtime_1.jsxs)("option", { value: "", children: ["\u2795 \u05D9\u05E2\u05D3 \u05D7\u05D3\u05E9: ", t.categoryId === 'save_emergency' ? 'קרן ביטחון' : t.categoryId === 'save_invest' ? 'השקעה לטווח ארוך' : 'חיסכון כללי'] })] }) }), t.categoryId === 'save_invest' && (0, jsx_runtime_1.jsx)("p", { className: "span2 small muted", children: "\uD83D\uDCA1 \u05DB\u05D0\u05DF \u05E8\u05E7 \u05DE\u05EA\u05E2\u05D3\u05D9\u05DD \u05DB\u05E1\u05E3 \u05E9\u05D4\u05E9\u05E7\u05E2\u05EA\u05DD \u05D1\u05E2\u05E6\u05DE\u05DB\u05DD (\u05D1\u05D1\u05E0\u05E7, \u05D1\u05D9\u05EA \u05D4\u05E9\u05E7\u05E2\u05D5\u05EA \u05D0\u05D5 \u05E7\u05D5\u05E4\u05EA \u05D2\u05DE\u05DC \u05DC\u05D4\u05E9\u05E7\u05E2\u05D4). \u05DE\u05D5\u05DE\u05DC\u05E5 \u05DC\u05D4\u05E9\u05E7\u05D9\u05E2 \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D9\u05E9 \u05E7\u05E8\u05DF \u05D1\u05D9\u05D8\u05D7\u05D5\u05DF. \u05D6\u05D4 \u05DE\u05D9\u05D3\u05E2 \u05DB\u05DC\u05DC\u05D9, \u05DC\u05D0 \u05D9\u05D9\u05E2\u05D5\u05E5 \u05D4\u05E9\u05E7\u05E2\u05D5\u05EA." })] }), !editing && t.kind === 'expense' && quick.length > 0 && (0, jsx_runtime_1.jsxs)("div", { className: "span2 quick", children: [(0, jsx_runtime_1.jsx)("span", { className: "field-label", children: "\u26A1 \u05D4\u05D5\u05E1\u05E4\u05D4 \u05DE\u05D4\u05D9\u05E8\u05D4" }), (0, jsx_runtime_1.jsx)("div", { className: "chips", children: quick.map(q => (0, jsx_runtime_1.jsxs)("button", { type: "button", className: "chip", onClick: () => { setT(p => ({ ...p, merchant: q.merchant, categoryId: q.categoryId, paymentMethod: q.paymentMethod, description: q.description })); setAmountStr(String(q.amount)); }, children: [(0, finance_1.catById)(st.s, q.categoryId).icon, " ", q.merchant, " \u00B7 ", (0, format_1.nis)(q.amount, true)] }, q.merchant)) })] }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E1\u05DB\u05D5\u05DD (\u20AA) *", error: err.amount, children: (0, jsx_runtime_1.jsx)("input", { inputMode: "decimal", className: "input input-amount", value: amountStr, onChange: (e) => setAmountStr(e.target.value), placeholder: "0", "aria-invalid": !!err.amount }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05EA\u05D0\u05E8\u05D9\u05DA *", error: err.date, children: (0, jsx_runtime_1.jsx)("input", { type: "date", className: "input", value: t.date, onChange: (e) => set('date', e.target.value) }) }), t.kind !== 'saving' && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)(ui_1.Field, { label: t.kind === 'expense' ? 'בית עסק *' : 'מקור ההכנסה *', error: err.merchant, children: [(0, jsx_runtime_1.jsx)("input", { className: "input", value: t.merchant, onChange: (e) => set('merchant', e.target.value), placeholder: t.kind === 'expense' ? 'לדוגמה: סופר השכונה' : 'לדוגמה: מקום העבודה', list: "merchants" }), (0, jsx_runtime_1.jsx)("datalist", { id: "merchants", children: Array.from(new Set(st.s.transactions.map(x => x.merchant))).slice(0, 50).map(m => (0, jsx_runtime_1.jsx)("option", { value: m }, m)) })] }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4 *", error: err.category, children: (0, jsx_runtime_1.jsxs)("select", { className: "input", value: t.categoryId, onChange: (e) => set('categoryId', e.target.value), children: [(0, jsx_runtime_1.jsx)("option", { value: "", children: "\u05D1\u05D7\u05E8\u05D5 \u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4\u2026" }), cats.map(c => (0, jsx_runtime_1.jsxs)("option", { value: c.id, children: [c.icon, " ", c.name] }, c.id))] }) })] }), t.kind !== 'saving' && (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05EA\u05D9\u05D0\u05D5\u05E8 \u05D4\u05DE\u05D5\u05E6\u05E8 \u05D0\u05D5 \u05D4\u05E9\u05D9\u05E8\u05D5\u05EA", children: (0, jsx_runtime_1.jsx)("input", { className: "input", value: t.description, onChange: (e) => set('description', e.target.value), placeholder: "\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4" }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05D0\u05DE\u05E6\u05E2\u05D9 \u05EA\u05E9\u05DC\u05D5\u05DD", children: (0, jsx_runtime_1.jsx)("select", { className: "input", value: t.paymentMethod, onChange: (e) => set('paymentMethod', e.target.value), children: Object.entries(categories_1.PAYMENT_LABELS).map(([k, v]) => (0, jsx_runtime_1.jsx)("option", { value: k, children: v }, k)) }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05D4\u05E2\u05E8\u05D5\u05EA", children: (0, jsx_runtime_1.jsx)("textarea", { className: "input", rows: 2, value: t.notes, onChange: (e) => set('notes', e.target.value), placeholder: "\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4" }) }), t.kind === 'expense' && (0, jsx_runtime_1.jsx)(Attachments_1.AttachmentsField, { ids: att.ids, pending: att.pending, onChange: (ids, pending, removed) => setAtt(p => ({ ids, pending, removed: removed ? [...p.removed, removed] : p.removed })) }), (0, jsx_runtime_1.jsxs)("label", { className: "check-row", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: t.recurring, onChange: (e) => set('recurring', e.target.checked) }), " ", (0, jsx_runtime_1.jsxs)("span", { children: [t.kind === 'income' ? 'הכנסה קבועה' : t.kind === 'saving' ? 'הוראת קבע לחיסכון' : 'תשלום קבוע', " (\u05D7\u05D5\u05D6\u05E8 \u05DB\u05DC \u05D7\u05D5\u05D3\u05E9)", st.s.settings.autoRecurring ? (0, jsx_runtime_1.jsx)("small", { className: "block muted", children: "\u05D9\u05D9\u05E8\u05E9\u05DD \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA \u05D1\u05DB\u05DC \u05D7\u05D5\u05D3\u05E9 \u05D1\u05D0\u05D5\u05EA\u05D5 \u05D9\u05D5\u05DD. \u05DC\u05D1\u05D9\u05D8\u05D5\u05DC \u2013 \u05D1\u05D8\u05DC\u05D5 \u05D0\u05EA \u05D4\u05E1\u05D9\u05DE\u05D5\u05DF \u05DB\u05D0\u05DF." }) : null] })] }), editing && (0, jsx_runtime_1.jsxs)("p", { className: "muted span2", children: ["\u05DE\u05E7\u05D5\u05E8 \u05D4\u05E8\u05E9\u05D5\u05DE\u05D4: ", t.source === 'manual' ? 'הזנה ידנית' : t.source === 'receipt' ? 'סריקת קבלה' : t.source === 'bank' ? 'בנק' : 'כרטיס אשראי', t.isDemo ? ' · נתוני הדגמה' : ''] }), (0, jsx_runtime_1.jsxs)("div", { className: "row-end span2", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: st.closeAdd, children: "\u05D1\u05D9\u05D8\u05D5\u05DC" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { type: "submit", icon: "check", big: true, disabled: saving, children: saving ? 'שומרים…' : editing ? 'שמירת שינויים' : 'שמירה' })] })] }));
 }
 function SimpleWizard() {
     const st = (0, store_1.useStore)();
@@ -20743,8 +20776,167 @@ function SimpleWizard() {
     return ((0, jsx_runtime_1.jsxs)("div", { className: "wizard", children: [(0, jsx_runtime_1.jsx)("div", { className: "steps", "aria-label": `שלב ${step} מתוך 4`, children: [1, 2, 3, 4].map(i => (0, jsx_runtime_1.jsx)("span", { className: i <= step ? 'on' : '' }, i)) }), step === 1 && (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h3", { className: "wiz-q", children: "1. \u05DB\u05DE\u05D4 \u05E9\u05D9\u05DC\u05DE\u05EA\u05DD?" }), (0, jsx_runtime_1.jsxs)("div", { className: "amount-big", children: [(0, jsx_runtime_1.jsx)("input", { autoFocus: true, inputMode: "decimal", value: amount, onChange: (e) => setAmount(e.target.value), onKeyDown: (e) => e.key === 'Enter' && next(), placeholder: "0", "aria-label": "\u05E1\u05DB\u05D5\u05DD \u05D1\u05E9\u05E7\u05DC\u05D9\u05DD" }), (0, jsx_runtime_1.jsx)("span", { children: "\u20AA" })] })] }), step === 2 && (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("h3", { className: "wiz-q", children: "2. \u05E2\u05DC \u05DE\u05D4?" }), (0, jsx_runtime_1.jsx)("div", { className: "cat-grid", children: cats.map(c => (0, jsx_runtime_1.jsxs)("button", { className: 'cat-btn ' + (cat === c.id ? 'on' : ''), onClick: () => { setCat(c.id); setErr(''); }, children: [(0, jsx_runtime_1.jsx)("span", { children: c.icon }), c.name] }, c.id)) })] }), step === 3 && (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsxs)("h3", { className: "wiz-q", children: ["3. \u05D0\u05D9\u05E4\u05D4? ", (0, jsx_runtime_1.jsx)("small", { children: "(\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4)" })] }), (0, jsx_runtime_1.jsx)("input", { className: "input input-xl", value: merchant, onChange: (e) => setMerchant(e.target.value), placeholder: "\u05DC\u05D3\u05D5\u05D2\u05DE\u05D4: \u05D4\u05DE\u05DB\u05D5\u05DC\u05EA", onKeyDown: (e) => e.key === 'Enter' && next() })] }), step === 4 && (0, jsx_runtime_1.jsxs)("div", { className: "wiz-summary", children: [(0, jsx_runtime_1.jsx)("h3", { className: "wiz-q", children: "4. \u05D4\u05DB\u05D5\u05DC \u05E0\u05DB\u05D5\u05DF?" }), (0, jsx_runtime_1.jsx)("p", { children: (0, jsx_runtime_1.jsx)("strong", { children: (0, format_1.nis)(a) }) }), (0, jsx_runtime_1.jsxs)("p", { children: [(0, finance_1.catById)(st.s, cat).icon, " ", (0, finance_1.catById)(st.s, cat).name] }), (0, jsx_runtime_1.jsx)("p", { children: merchant || '—' }), (0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05D4\u05D9\u05D5\u05DD" })] }), err && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-warn", role: "alert", children: err }), (0, jsx_runtime_1.jsxs)("div", { className: "row-between", children: [step > 1 ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", big: true, icon: "arrowR", onClick: () => setStep(step - 1), children: "\u05D7\u05D6\u05E8\u05D4" }) : (0, jsx_runtime_1.jsx)("span", {}), step < 4 ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, onClick: next, icon: "arrowL", children: step === 3 && !merchant ? 'דלגו' : 'המשך' }) : (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "gold", icon: "check", onClick: save, children: "\u05DB\u05DF, \u05DC\u05E9\u05DE\u05D5\u05E8" })] })] }));
 }
 
-},{"react/jsx-runtime":1,"react":7,"../store":12,"./ui":23,"../lib/categories":14,"../lib/format":17,"../lib/finance":16,"../lib/savings":21}];
+},{"react/jsx-runtime":1,"react":7,"../store":12,"./Attachments":31,"../lib/images":32,"./ui":23,"../lib/categories":14,"../lib/format":17,"../lib/finance":16,"../lib/savings":21}];
 defs[31]=[function(module,exports,require){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ImageViewer = ImageViewer;
+exports.AttachmentsField = AttachmentsField;
+exports.AttachBadge = AttachBadge;
+const jsx_runtime_1 = require("react/jsx-runtime");
+const react_1 = require("react");
+const images_1 = require("../lib/images");
+const ui_1 = require("./ui");
+/** Object URL for a stored image id or an in-memory blob. */
+function useImgUrl(src) {
+    const [url, setUrl] = (0, react_1.useState)('');
+    (0, react_1.useEffect)(() => {
+        let u = '', alive = true;
+        (async () => { const b = typeof src === 'string' ? await (0, images_1.getImage)(src) : src; if (b && alive) {
+            u = URL.createObjectURL(b);
+            setUrl(u);
+        } })();
+        return () => { alive = false; if (u)
+            URL.revokeObjectURL(u); };
+    }, [src]);
+    return url;
+}
+function Thumb({ src, onOpen, onRemove }) {
+    const url = useImgUrl(src);
+    return ((0, jsx_runtime_1.jsxs)("span", { className: "att-thumb", children: [(0, jsx_runtime_1.jsx)("button", { type: "button", className: "att-img", onClick: () => url && onOpen(url), "aria-label": "\u05D4\u05E6\u05D2\u05EA \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D1\u05D2\u05D5\u05D3\u05DC \u05DE\u05DC\u05D0", children: url ? (0, jsx_runtime_1.jsx)("img", { src: url, alt: "" }) : (0, jsx_runtime_1.jsx)("span", { className: "att-missing", children: "\uD83D\uDDBC\uFE0F" }) }), onRemove && (0, jsx_runtime_1.jsx)("button", { type: "button", className: "att-x", onClick: onRemove, "aria-label": "\u05D4\u05E1\u05E8\u05EA \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4", children: "\u2715" })] }));
+}
+function ImageViewer({ url, onClose }) {
+    return (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: !!url, onClose: onClose, title: "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05DE\u05E6\u05D5\u05E8\u05E4\u05EA", wide: true, children: url && (0, jsx_runtime_1.jsx)("img", { className: "att-full", src: url, alt: "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05E9\u05E6\u05D5\u05E8\u05E4\u05D4 \u05DC\u05D4\u05D5\u05E6\u05D0\u05D4" }) });
+}
+/** Attach screenshots / photos to an expense. Nothing is read from the image – it is kept for reference only. */
+function AttachmentsField({ ids, pending, onChange }) {
+    const ref = (0, react_1.useRef)(null);
+    const [view, setView] = (0, react_1.useState)('');
+    const [busy, setBusy] = (0, react_1.useState)(false);
+    const [err, setErr] = (0, react_1.useState)('');
+    if (!(0, images_1.imagesSupported)())
+        return null;
+    const total = ids.length + pending.length;
+    const add = async (e) => {
+        const files = Array.from(e.target.files || []);
+        e.target.value = '';
+        const imgs = files.filter(f => f.type.startsWith('image/')).slice(0, Math.max(0, 5 - total));
+        if (files.length && !imgs.length) {
+            setErr('אפשר לצרף רק קבצי תמונה.');
+            return;
+        }
+        setBusy(true);
+        setErr('');
+        try {
+            const out = [];
+            for (const f of imgs)
+                out.push(await (0, images_1.compressImage)(f));
+            onChange(ids, [...pending, ...out]);
+        }
+        catch {
+            setErr('לא הצלחנו לקרוא את התמונה. נסו קובץ אחר.');
+        }
+        setBusy(false);
+    };
+    return ((0, jsx_runtime_1.jsxs)("div", { className: "span2 attach", children: [(0, jsx_runtime_1.jsx)("span", { className: "field-label", children: "\uD83D\uDCCE \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA (\u05E8\u05E9\u05D5\u05EA)" }), (0, jsx_runtime_1.jsxs)("div", { className: "att-row", children: [ids.map(id => (0, jsx_runtime_1.jsx)(Thumb, { src: id, onOpen: setView, onRemove: () => onChange(ids.filter(x => x !== id), pending, id) }, id)), pending.map((b, i) => (0, jsx_runtime_1.jsx)(Thumb, { src: b, onOpen: setView, onRemove: () => onChange(ids, pending.filter((_, j) => j !== i)) }, 'p' + i)), total < 5 && (0, jsx_runtime_1.jsx)("button", { type: "button", className: "att-add", onClick: () => ref.current?.click(), disabled: busy, children: busy ? 'מכינים…' : (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)("b", { children: "+" }), (0, jsx_runtime_1.jsx)("small", { children: "\u05E6\u05D9\u05DC\u05D5\u05DD \u05DE\u05E1\u05DA \u05D0\u05D5 \u05EA\u05DE\u05D5\u05E0\u05D4" })] }) })] }), (0, jsx_runtime_1.jsx)("input", { ref: ref, type: "file", accept: "image/*", multiple: true, hidden: true, onChange: add }), (0, jsx_runtime_1.jsx)("small", { className: "muted block", children: "\u05DC\u05DE\u05E9\u05DC \u05E6\u05D9\u05DC\u05D5\u05DD \u05DE\u05E1\u05DA \u05DE\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D9\u05EA \u05D4\u05D1\u05E0\u05E7 \u05D0\u05D5 \u05EA\u05DE\u05D5\u05E0\u05D4 \u05E9\u05DC \u05D4\u05E7\u05D1\u05DC\u05D4. \u05E2\u05D3 5 \u05EA\u05DE\u05D5\u05E0\u05D5\u05EA. \u05E0\u05E9\u05DE\u05E8\u05D5\u05EA \u05E8\u05E7 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4, \u05D5\u05DC\u05D0 \u05E0\u05DB\u05DC\u05DC\u05D5\u05EA \u05D1\u05E7\u05D5\u05D1\u05E5 \u05D4\u05D2\u05D9\u05D1\u05D5\u05D9." }), err && (0, jsx_runtime_1.jsx)("small", { className: "warn-text block", children: err }), (0, jsx_runtime_1.jsx)(ImageViewer, { url: view, onClose: () => setView('') })] }));
+}
+/** Small paperclip button for lists; opens the first image. */
+function AttachBadge({ ids }) {
+    const [view, setView] = (0, react_1.useState)('');
+    if (!ids || !ids.length)
+        return null;
+    const open = async () => { const b = await (0, images_1.getImage)(ids[0]); if (b)
+        setView(URL.createObjectURL(b)); };
+    return (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("button", { type: "button", className: "att-badge", onClick: open, "aria-label": `הצגת ${ids.length} תמונות מצורפות`, children: ["\uD83D\uDCCE", ids.length > 1 ? ids.length : ''] }), (0, jsx_runtime_1.jsx)(ImageViewer, { url: view, onClose: () => { URL.revokeObjectURL(view); setView(''); } })] });
+}
+
+},{"react/jsx-runtime":1,"react":7,"../lib/images":32,"./ui":23}];
+defs[32]=[function(module,exports,require){
+"use strict";
+// ===== Expense attachments (screenshots / photos) =====
+// Stored only on this device, in IndexedDB (localStorage is too small for images).
+// Images are never read or analysed – they are kept as the user's own reference.
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.imagesSupported = void 0;
+exports.compressImage = compressImage;
+exports.putImage = putImage;
+exports.getImage = getImage;
+exports.deleteImages = deleteImages;
+exports.clearImages = clearImages;
+const DB = 'cashup-images', STORE = 'img';
+let dbp = null;
+function db() {
+    if (!dbp)
+        dbp = new Promise((res, rej) => {
+            const r = indexedDB.open(DB, 1);
+            r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains(STORE))
+                r.result.createObjectStore(STORE); };
+            r.onsuccess = () => res(r.result);
+            r.onerror = () => { dbp = null; rej(r.error); };
+        });
+    return dbp;
+}
+async function tx(mode, fn) {
+    const d = await Promise.race([db(), new Promise((_, rej) => setTimeout(() => rej(new Error('idb timeout')), 5000))]);
+    return new Promise((res, rej) => {
+        setTimeout(() => rej(new Error('idb timeout')), 5000);
+        const t = d.transaction(STORE, mode);
+        const req = fn(t.objectStore(STORE));
+        t.oncomplete = () => res(req ? req.result : undefined);
+        t.onerror = () => rej(t.error);
+        t.onabort = () => rej(t.error);
+    });
+}
+const imagesSupported = () => typeof indexedDB !== 'undefined';
+exports.imagesSupported = imagesSupported;
+/** Shrinks a photo/screenshot so it stays readable but small (long side ≤ 1600px, JPEG). */
+async function compressImage(file, max = 1600, q = 0.8) {
+    const url = URL.createObjectURL(file);
+    try {
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+        const r = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * r);
+        c.height = Math.round(img.height * r);
+        const x = c.getContext('2d');
+        x.fillStyle = '#fff';
+        x.fillRect(0, 0, c.width, c.height);
+        x.drawImage(img, 0, 0, c.width, c.height);
+        return await new Promise(res => c.toBlob(b => res(b || file), 'image/jpeg', q));
+    }
+    finally {
+        URL.revokeObjectURL(url);
+    }
+}
+async function putImage(b) {
+    const id = 'img_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    await tx('readwrite', s => s.put(b, id));
+    return id;
+}
+async function getImage(id) {
+    try {
+        return (await tx('readonly', s => s.get(id))) || null;
+    }
+    catch {
+        return null;
+    }
+}
+async function deleteImages(ids = []) {
+    const list = ids.filter(Boolean);
+    if (!list.length)
+        return;
+    try {
+        await tx('readwrite', s => { list.forEach(i => s.delete(i)); });
+    }
+    catch { /* ignore */ }
+}
+async function clearImages() { try {
+    await tx('readwrite', s => s.clear());
+}
+catch { /* ignore */ } }
+
+},{}];
+defs[33]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.candidateNotices = candidateNotices;
@@ -20801,7 +20993,7 @@ function visibleNotices(s) {
 }
 
 },{"./finance":16,"./format":17,"./game":15}];
-defs[32]=[function(module,exports,require){
+defs[34]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.Dashboard = Dashboard;
@@ -20859,8 +21051,8 @@ function SimpleHome() {
     return ((0, jsx_runtime_1.jsxs)("div", { className: "page simple-home", children: [(0, jsx_runtime_1.jsx)("h1", { children: "\u05E9\u05DC\u05D5\u05DD! \uD83D\uDC4B" }), (0, jsx_runtime_1.jsx)("p", { className: "lead", children: (0, format_1.monthLabel)(key) }), (0, jsx_runtime_1.jsxs)("div", { className: "simple-kpis", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { children: "\u05E0\u05DB\u05E0\u05E1 \u05D4\u05D7\u05D5\u05D3\u05E9" }), (0, jsx_runtime_1.jsx)("strong", { className: "pos", children: (0, format_1.nis)(sm.income) })] }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { children: "\u05D9\u05E6\u05D0 \u05D4\u05D7\u05D5\u05D3\u05E9" }), (0, jsx_runtime_1.jsx)("strong", { className: "neg", children: (0, format_1.nis)(sm.expenses) })] }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("span", { children: "\u05E0\u05E9\u05D0\u05E8" }), (0, jsx_runtime_1.jsx)("strong", { children: (0, format_1.nis)(sm.balance) })] })] }), (0, jsx_runtime_1.jsxs)("button", { className: "simple-add", onClick: () => st.openAddExpense(), children: [(0, jsx_runtime_1.jsx)(ui_1.Icon, { name: "plus", size: 40, stroke: 2.6 }), " \u05D4\u05D5\u05E1\u05E4\u05EA \u05D4\u05D5\u05E6\u05D0\u05D4"] }), (0, jsx_runtime_1.jsxs)("div", { className: "simple-links", children: [(0, jsx_runtime_1.jsxs)("button", { onClick: () => st.go('expenses'), children: [(0, jsx_runtime_1.jsx)("span", { children: "\uD83D\uDCCB" }), "\u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05E9\u05DC\u05D9"] }), (0, jsx_runtime_1.jsxs)("button", { onClick: () => st.go('game'), children: [(0, jsx_runtime_1.jsx)("span", { children: "\uD83C\uDFD9\uFE0F" }), "\u05D4\u05E2\u05D9\u05E8 \u05E9\u05DC\u05D9 ", (0, game_1.readyBuildings)(s).length ? (0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: "gold", children: (0, game_1.readyBuildings)(s).length }) : null] }), (0, jsx_runtime_1.jsxs)("button", { onClick: () => st.go('goals'), children: [(0, jsx_runtime_1.jsx)("span", { children: "\uD83C\uDFAF" }), "\u05D4\u05D7\u05D9\u05E1\u05DB\u05D5\u05DF \u05E9\u05DC\u05D9"] })] }), s.demoLoaded && (0, jsx_runtime_1.jsx)("p", { className: "muted center", children: "\u05DE\u05D5\u05E6\u05D2\u05D9\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D3\u05D2\u05DE\u05D4. \u05D0\u05E4\u05E9\u05E8 \u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05D5\u05EA\u05DD \u05D1\u05DE\u05E1\u05DA \u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA." })] }));
 }
 
-},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../components/charts":33,"../lib/finance":16,"../lib/analysis":34,"../lib/format":17,"../components/Freedom":35,"../components/Signup":36,"../lib/game":15}];
-defs[33]=[function(module,exports,require){
+},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../components/charts":35,"../lib/finance":16,"../lib/analysis":36,"../lib/format":17,"../components/Freedom":37,"../components/Signup":38,"../lib/game":15}];
+defs[35]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BarChart = BarChart;
@@ -20939,7 +21131,7 @@ function Spark({ values, color = '#1F6B57' }) {
 }
 
 },{"react/jsx-runtime":1,"react":7,"../lib/format":17}];
-defs[34]=[function(module,exports,require){
+defs[36]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.buildInsights = buildInsights;
@@ -21211,7 +21403,7 @@ function coachContext(s, key) {
 }
 
 },{"./finance":16,"./format":17,"./freedom":18}];
-defs[35]=[function(module,exports,require){
+defs[37]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FreedomPanel = FreedomPanel;
@@ -21259,7 +21451,7 @@ function OutsideForm({ onDone }) {
 }
 
 },{"react/jsx-runtime":1,"react":7,"../store":12,"./ui":23,"../lib/freedom":18,"../lib/format":17,"../lib/game":15}];
-defs[36]=[function(module,exports,require){
+defs[38]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SignupCard = SignupCard;
@@ -21311,7 +21503,7 @@ function SignupForm({ onDone }) {
 }
 
 },{"react/jsx-runtime":1,"react":7,"../store":12,"./ui":23,"../lib/siteConfig":29}];
-defs[37]=[function(module,exports,require){
+defs[39]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BuildingArt = BuildingArt;
@@ -21459,8 +21651,8 @@ function RecurringTasks() {
                 }), (0, jsx_runtime_1.jsxs)("p", { className: "muted small", children: ["\u05E8\u05E9\u05D5\u05EA \u05D1\u05DC\u05D1\u05D3. \u05DE\u05EA\u05D7\u05D3\u05E9\u05D5\u05EA \u05D1\u05DB\u05DC ", p === 'daily' ? 'יום' : p === 'weekly' ? 'שבוע' : 'חודש', "."] })] }, p))) });
 }
 
-},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../lib/game":15,"../lib/format":17,"../lib/finance":16,"../components/Freedom":35}];
-defs[38]=[function(module,exports,require){
+},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../lib/game":15,"../lib/format":17,"../lib/finance":16,"../components/Freedom":37}];
+defs[40]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ExpensesPage = ExpensesPage;
@@ -21474,6 +21666,8 @@ const categories_1 = require("../lib/categories");
 const format_1 = require("../lib/format");
 const game_1 = require("../lib/game");
 const savings_1 = require("../lib/savings");
+const Attachments_1 = require("../components/Attachments");
+const images_1 = require("../lib/images");
 function ExpensesPage() {
     const st = (0, store_1.useStore)();
     const { s } = st;
@@ -21518,8 +21712,8 @@ function ExpensesPage() {
     return ((0, jsx_runtime_1.jsxs)("div", { className: "page", children: [(0, jsx_runtime_1.jsx)(ui_1.PageHeader, { title: "\u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05E9\u05DC\u05D9", sub: "\u05DB\u05DC \u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05D5\u05D4\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA \u05D1\u05DE\u05E7\u05D5\u05DD \u05D0\u05D7\u05D3 \u2013 \u05DE\u05DB\u05DC \u05D4\u05DE\u05E7\u05D5\u05E8\u05D5\u05EA.", actions: (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", icon: "tag", onClick: () => setCatModal(true), children: "\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D5\u05EA \u05D5\u05EA\u05E7\u05E6\u05D9\u05D1\u05D9\u05DD" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { icon: "plus", onClick: () => st.openAddExpense(), children: "\u05D4\u05D5\u05E1\u05E4\u05D4" })] }) }), dups.length > 0 && ((0, jsx_runtime_1.jsxs)("div", { className: "alert alert-warn row-between", children: [(0, jsx_runtime_1.jsxs)("span", { children: ["\uD83D\uDD0E \u05E0\u05DE\u05E6\u05D0\u05D5 ", (0, jsx_runtime_1.jsx)("strong", { children: dups.length }), " \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05E2\u05E9\u05D5\u05D9\u05D5\u05EA \u05DC\u05D4\u05D9\u05D5\u05EA \u05DB\u05E4\u05D5\u05DC\u05D5\u05EA (\u05DC\u05DE\u05E9\u05DC \u05D0\u05D5\u05EA\u05D4 \u05E7\u05E0\u05D9\u05D9\u05D4 \u05E9\u05E0\u05E8\u05E9\u05DE\u05D4 \u05E4\u05E2\u05DE\u05D9\u05D9\u05DD)."] }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: () => setShowDups(true), children: "\u05DC\u05D1\u05D3\u05D9\u05E7\u05D4" })] })), (0, jsx_runtime_1.jsxs)(ui_1.Card, { className: "filters", children: [(0, jsx_runtime_1.jsxs)("div", { className: "search-box", children: [(0, jsx_runtime_1.jsx)(ui_1.Icon, { name: "search" }), (0, jsx_runtime_1.jsx)("input", { className: "input", placeholder: "\u05D7\u05D9\u05E4\u05D5\u05E9 \u05DC\u05E4\u05D9 \u05D1\u05D9\u05EA \u05E2\u05E1\u05E7, \u05EA\u05D9\u05D0\u05D5\u05E8, \u05E1\u05DB\u05D5\u05DD\u2026", value: q, onChange: (e) => setQ(e.target.value), "aria-label": "\u05D7\u05D9\u05E4\u05D5\u05E9" })] }), (0, jsx_runtime_1.jsxs)("div", { className: "filter-row", children: [(0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05DE\u05EA\u05D0\u05E8\u05D9\u05DA", children: (0, jsx_runtime_1.jsx)("input", { type: "date", className: "input", value: from, onChange: (e) => setFrom(e.target.value) }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E2\u05D3 \u05EA\u05D0\u05E8\u05D9\u05DA", children: (0, jsx_runtime_1.jsx)("input", { type: "date", className: "input", value: to, onChange: (e) => setTo(e.target.value) }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4", children: (0, jsx_runtime_1.jsxs)("select", { className: "input", value: cat, onChange: (e) => setCat(e.target.value), children: [(0, jsx_runtime_1.jsx)("option", { value: "", children: "\u05D4\u05DB\u05D5\u05DC" }), s.categories.map(c => (0, jsx_runtime_1.jsxs)("option", { value: c.id, children: [c.icon, " ", c.name] }, c.id))] }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05D1\u05D9\u05EA \u05E2\u05E1\u05E7", children: (0, jsx_runtime_1.jsxs)("select", { className: "input", value: merchant, onChange: (e) => setMerchant(e.target.value), children: [(0, jsx_runtime_1.jsx)("option", { value: "", children: "\u05D4\u05DB\u05D5\u05DC" }), merchants.map(m => (0, jsx_runtime_1.jsx)("option", { value: m, children: m }, m))] }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E1\u05D5\u05D2", children: (0, jsx_runtime_1.jsxs)("select", { className: "input", value: kind, onChange: (e) => setKind(e.target.value), children: [(0, jsx_runtime_1.jsx)("option", { value: "all", children: "\u05D4\u05DB\u05D5\u05DC" }), (0, jsx_runtime_1.jsx)("option", { value: "expense", children: "\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA" }), (0, jsx_runtime_1.jsx)("option", { value: "income", children: "\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA" }), (0, jsx_runtime_1.jsx)("option", { value: "saving", children: "\u05D7\u05D9\u05E1\u05DB\u05D5\u05DF \u05D5\u05D4\u05E9\u05E7\u05E2\u05D5\u05EA" })] }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05DE\u05E7\u05D5\u05E8", children: (0, jsx_runtime_1.jsxs)("select", { className: "input", value: source, onChange: (e) => setSource(e.target.value), children: [(0, jsx_runtime_1.jsx)("option", { value: "", children: "\u05D4\u05DB\u05D5\u05DC" }), Object.entries(categories_1.SOURCE_LABELS).map(([k, v]) => (0, jsx_runtime_1.jsx)("option", { value: k, children: v }, k))] }) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "row-between", children: [(0, jsx_runtime_1.jsxs)("span", { className: "muted", children: [list.length, " \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u00B7 \u05D4\u05D5\u05E6\u05D0\u05D5\u05EA ", (0, format_1.nis)(totalExp), totalInc ? ` · הכנסות ${(0, format_1.nis)(totalInc)}` : '', totalSave ? ` · נחסך והושקע ${(0, format_1.nis)(totalSave)}` : ''] }), (0, jsx_runtime_1.jsxs)("span", { className: "row-gap", children: [(0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: () => { setFrom((0, format_1.currentMonth)() + '-01'); setTo(''); }, children: "\u05D4\u05D7\u05D5\u05D3\u05E9" }), filtered && (0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: reset, children: "\u05E0\u05D9\u05E7\u05D5\u05D9 \u05E1\u05D9\u05E0\u05D5\u05DF" })] })] })] }), (0, jsx_runtime_1.jsxs)(ui_1.Card, { children: [list.length === 0 ? (0, jsx_runtime_1.jsx)(ui_1.Empty, { icon: "\uD83D\uDD0D", title: filtered ? 'לא נמצאו רשומות' : 'עדיין אין רשומות', text: filtered ? 'נסו לשנות את הסינון' : 'הוסיפו הוצאה ראשונה', action: !filtered && (0, jsx_runtime_1.jsx)(ui_1.Btn, { icon: "plus", onClick: () => st.openAddExpense(), children: "\u05D4\u05D5\u05E1\u05E4\u05EA \u05D4\u05D5\u05E6\u05D0\u05D4" }) }) :
                         (0, jsx_runtime_1.jsx)("div", { className: "table-wrap", children: (0, jsx_runtime_1.jsxs)("table", { className: "tx-table", children: [(0, jsx_runtime_1.jsx)("thead", { children: (0, jsx_runtime_1.jsxs)("tr", { children: [(0, jsx_runtime_1.jsx)("th", { children: "\u05EA\u05D0\u05E8\u05D9\u05DA" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05D1\u05D9\u05EA \u05E2\u05E1\u05E7" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4" }), (0, jsx_runtime_1.jsx)("th", { className: "hide-sm", children: "\u05EA\u05E9\u05DC\u05D5\u05DD" }), (0, jsx_runtime_1.jsx)("th", { className: "hide-sm", children: "\u05DE\u05E7\u05D5\u05E8" }), (0, jsx_runtime_1.jsx)("th", { children: "\u05E1\u05DB\u05D5\u05DD" }), (0, jsx_runtime_1.jsx)("th", { "aria-label": "\u05E4\u05E2\u05D5\u05DC\u05D5\u05EA" })] }) }), (0, jsx_runtime_1.jsx)("tbody", { children: list.slice(0, limit).map(t => {
                                             const c = (0, finance_1.catById)(s, t.categoryId);
-                                            return ((0, jsx_runtime_1.jsxs)("tr", { children: [(0, jsx_runtime_1.jsx)("td", { className: "nowrap", children: (0, format_1.dateLabel)(t.date) }), (0, jsx_runtime_1.jsxs)("td", { children: [(0, jsx_runtime_1.jsx)("strong", { children: t.merchant }), t.description && (0, jsx_runtime_1.jsx)("small", { className: "block muted", children: t.description }), (0, jsx_runtime_1.jsxs)("span", { className: "row-gap", children: [t.isDemo && (0, jsx_runtime_1.jsx)(ui_1.DemoBadge, {}), t.recurring && (0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: "purple", children: "\u05E7\u05D1\u05D5\u05E2" })] })] }), (0, jsx_runtime_1.jsx)("td", { children: (0, jsx_runtime_1.jsxs)("span", { className: "cat-chip", style: { background: c.color + '1A', color: c.color }, children: [c.icon, " ", c.name] }) }), (0, jsx_runtime_1.jsx)("td", { className: "hide-sm", children: categories_1.PAYMENT_LABELS[t.paymentMethod] }), (0, jsx_runtime_1.jsx)("td", { className: "hide-sm", children: (0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: t.source === 'manual' ? 'gray' : 'blue', children: categories_1.SOURCE_LABELS[t.source] }) }), (0, jsx_runtime_1.jsxs)("td", { className: 'nowrap amt ' + (t.kind === 'income' ? 'pos' : t.kind === 'saving' ? 'save' : ''), children: [t.kind === 'income' ? '+' : t.kind === 'saving' ? '🐷 ' : '', (0, format_1.nis)(t.amount, true)] }), (0, jsx_runtime_1.jsxs)("td", { className: "nowrap", children: [(0, jsx_runtime_1.jsx)("button", { className: "icon-btn", onClick: () => st.openAddExpense(t), "aria-label": `עריכת ${t.merchant}`, children: (0, jsx_runtime_1.jsx)(ui_1.Icon, { name: "edit", size: 18 }) }), (0, jsx_runtime_1.jsx)("button", { className: "icon-btn danger", onClick: () => setDel(t), "aria-label": `מחיקת ${t.merchant}`, children: (0, jsx_runtime_1.jsx)(ui_1.Icon, { name: "trash", size: 18 }) })] })] }, t.id));
-                                        }) })] }) }), list.length > limit && (0, jsx_runtime_1.jsx)("div", { className: "center", children: (0, jsx_runtime_1.jsxs)(ui_1.Btn, { kind: "soft", onClick: () => setLimit(limit + 40), children: ["\u05D4\u05E6\u05D2\u05EA \u05E2\u05D5\u05D3 (", list.length - limit, ")"] }) })] }), (0, jsx_runtime_1.jsx)(ui_1.Confirm, { open: !!del, text: del ? `למחוק את הרשומה "${del.merchant}" על סך ${(0, format_1.nis)(del.amount)}?` : '', onNo: () => setDel(null), onYes: () => { const id = del.id; st.mutate(d => { const tx = d.transactions.find(t => t.id === id); if (tx && tx.kind === 'saving')
+                                            return ((0, jsx_runtime_1.jsxs)("tr", { children: [(0, jsx_runtime_1.jsx)("td", { className: "nowrap", children: (0, format_1.dateLabel)(t.date) }), (0, jsx_runtime_1.jsxs)("td", { children: [(0, jsx_runtime_1.jsx)("strong", { children: t.merchant }), t.description && (0, jsx_runtime_1.jsx)("small", { className: "block muted", children: t.description }), (0, jsx_runtime_1.jsxs)("span", { className: "row-gap", children: [t.isDemo && (0, jsx_runtime_1.jsx)(ui_1.DemoBadge, {}), t.recurring && (0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: "purple", children: "\u05E7\u05D1\u05D5\u05E2" }), (0, jsx_runtime_1.jsx)(Attachments_1.AttachBadge, { ids: t.attachments })] })] }), (0, jsx_runtime_1.jsx)("td", { children: (0, jsx_runtime_1.jsxs)("span", { className: "cat-chip", style: { background: c.color + '1A', color: c.color }, children: [c.icon, " ", c.name] }) }), (0, jsx_runtime_1.jsx)("td", { className: "hide-sm", children: categories_1.PAYMENT_LABELS[t.paymentMethod] }), (0, jsx_runtime_1.jsx)("td", { className: "hide-sm", children: (0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: t.source === 'manual' ? 'gray' : 'blue', children: categories_1.SOURCE_LABELS[t.source] }) }), (0, jsx_runtime_1.jsxs)("td", { className: 'nowrap amt ' + (t.kind === 'income' ? 'pos' : t.kind === 'saving' ? 'save' : ''), children: [t.kind === 'income' ? '+' : t.kind === 'saving' ? '🐷 ' : '', (0, format_1.nis)(t.amount, true)] }), (0, jsx_runtime_1.jsxs)("td", { className: "nowrap", children: [(0, jsx_runtime_1.jsx)("button", { className: "icon-btn", onClick: () => st.openAddExpense(t), "aria-label": `עריכת ${t.merchant}`, children: (0, jsx_runtime_1.jsx)(ui_1.Icon, { name: "edit", size: 18 }) }), (0, jsx_runtime_1.jsx)("button", { className: "icon-btn danger", onClick: () => setDel(t), "aria-label": `מחיקת ${t.merchant}`, children: (0, jsx_runtime_1.jsx)(ui_1.Icon, { name: "trash", size: 18 }) })] })] }, t.id));
+                                        }) })] }) }), list.length > limit && (0, jsx_runtime_1.jsx)("div", { className: "center", children: (0, jsx_runtime_1.jsxs)(ui_1.Btn, { kind: "soft", onClick: () => setLimit(limit + 40), children: ["\u05D4\u05E6\u05D2\u05EA \u05E2\u05D5\u05D3 (", list.length - limit, ")"] }) })] }), (0, jsx_runtime_1.jsx)(ui_1.Confirm, { open: !!del, text: del ? `למחוק את הרשומה "${del.merchant}" על סך ${(0, format_1.nis)(del.amount)}?` : '', onNo: () => setDel(null), onYes: () => { const id = del.id; (0, images_1.deleteImages)(del.attachments); st.mutate(d => { const tx = d.transactions.find(t => t.id === id); if (tx && tx.kind === 'saving')
                     (0, savings_1.removeSaving)(d, tx); d.transactions = d.transactions.filter(t => t.id !== id); d.receipts = d.receipts.filter(r => r.transactionId !== id); }, 'הרשומה נמחקה'); setDel(null); } }), (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: showDups, onClose: () => setShowDups(false), title: "\u05D1\u05D3\u05D9\u05E7\u05EA \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05D0\u05E4\u05E9\u05E8\u05D9\u05D5\u05EA", wide: true, children: (0, jsx_runtime_1.jsx)(DupReview, {}) }), (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: catModal, onClose: () => setCatModal(false), title: "\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D5\u05EA \u05D5\u05EA\u05E7\u05E6\u05D9\u05D1\u05D9\u05DD", wide: true, children: (0, jsx_runtime_1.jsx)(CategoryManager, {}) })] }));
 }
 function DupReview() {
@@ -21527,7 +21721,7 @@ function DupReview() {
     const dups = (0, finance_1.findDuplicates)(st.s);
     if (!dups.length)
         return (0, jsx_runtime_1.jsx)(ui_1.Empty, { icon: "\u2705", title: "\u05D0\u05D9\u05DF \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05DC\u05D1\u05D3\u05D9\u05E7\u05D4" });
-    return (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05D0\u05E0\u05D7\u05E0\u05D5 \u05DC\u05D0 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA. \u05D1\u05D3\u05E7\u05D5 \u05DB\u05DC \u05D6\u05D5\u05D2 \u05D5\u05D4\u05D7\u05DC\u05D9\u05D8\u05D5." }), dups.map(p => ((0, jsx_runtime_1.jsxs)("div", { className: "dup-pair", children: [(0, jsx_runtime_1.jsx)("p", { className: "small muted", children: p.reason }), (0, jsx_runtime_1.jsx)("div", { className: "dup-cols", children: [p.a, p.b].map(t => ((0, jsx_runtime_1.jsxs)("div", { className: "dup-tx", children: [(0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: "blue", children: categories_1.SOURCE_LABELS[t.source] }), (0, jsx_runtime_1.jsx)("strong", { children: t.merchant }), (0, jsx_runtime_1.jsxs)("span", { children: [(0, format_1.dateLabel)(t.date), " \u00B7 ", (0, format_1.nis)(t.amount)] }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "danger", onClick: () => st.mutate(d => { d.transactions = d.transactions.filter(x => x.id !== t.id); }, 'הרשומה הכפולה הוסרה'), children: "\u05D6\u05D5 \u05DB\u05E4\u05D9\u05DC\u05D5\u05EA \u2013 \u05DC\u05D4\u05E1\u05D9\u05E8 \u05D0\u05EA \u05D6\u05D5" })] }, t.id))) }), (0, jsx_runtime_1.jsx)("div", { className: "center", children: (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => st.mutate(d => { d.dupDismissed.push(p.key); }, 'סומן: לא כפילות'), children: "\u05D0\u05DC\u05D4 \u05E9\u05EA\u05D9 \u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05E0\u05E4\u05E8\u05D3\u05D5\u05EA" }) })] }, p.key)))] });
+    return (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05D0\u05E0\u05D7\u05E0\u05D5 \u05DC\u05D0 \u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05DB\u05E4\u05D9\u05DC\u05D5\u05D9\u05D5\u05EA \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\u05EA. \u05D1\u05D3\u05E7\u05D5 \u05DB\u05DC \u05D6\u05D5\u05D2 \u05D5\u05D4\u05D7\u05DC\u05D9\u05D8\u05D5." }), dups.map(p => ((0, jsx_runtime_1.jsxs)("div", { className: "dup-pair", children: [(0, jsx_runtime_1.jsx)("p", { className: "small muted", children: p.reason }), (0, jsx_runtime_1.jsx)("div", { className: "dup-cols", children: [p.a, p.b].map(t => ((0, jsx_runtime_1.jsxs)("div", { className: "dup-tx", children: [(0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: "blue", children: categories_1.SOURCE_LABELS[t.source] }), (0, jsx_runtime_1.jsx)("strong", { children: t.merchant }), (0, jsx_runtime_1.jsxs)("span", { children: [(0, format_1.dateLabel)(t.date), " \u00B7 ", (0, format_1.nis)(t.amount)] }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "danger", onClick: () => { (0, images_1.deleteImages)(t.attachments); st.mutate(d => { d.transactions = d.transactions.filter(x => x.id !== t.id); }, 'הרשומה הכפולה הוסרה'); }, children: "\u05D6\u05D5 \u05DB\u05E4\u05D9\u05DC\u05D5\u05EA \u2013 \u05DC\u05D4\u05E1\u05D9\u05E8 \u05D0\u05EA \u05D6\u05D5" })] }, t.id))) }), (0, jsx_runtime_1.jsx)("div", { className: "center", children: (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => st.mutate(d => { d.dupDismissed.push(p.key); }, 'סומן: לא כפילות'), children: "\u05D0\u05DC\u05D4 \u05E9\u05EA\u05D9 \u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05E0\u05E4\u05E8\u05D3\u05D5\u05EA" }) })] }, p.key)))] });
 }
 function CategoryManager() {
     const st = (0, store_1.useStore)();
@@ -21565,8 +21759,8 @@ function CategoryManager() {
                                 t.categoryId = 'other'; }); }, 'הקטגוריה נמחקה; הרשומות הועברו ל"אחר"'), children: (0, jsx_runtime_1.jsx)(ui_1.Icon, { name: "trash", size: 18 }) })] }, c.id))) }), (0, jsx_runtime_1.jsx)("h4", { children: "\u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4 \u05D7\u05D3\u05E9\u05D4" }), (0, jsx_runtime_1.jsxs)("div", { className: "form-grid", children: [(0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E9\u05DD", error: err, children: (0, jsx_runtime_1.jsx)("input", { className: "input", value: name, onChange: (e) => setName(e.target.value), placeholder: "\u05DC\u05D3\u05D5\u05D2\u05DE\u05D4: \u05D7\u05D9\u05D5\u05EA \u05DE\u05D7\u05DE\u05D3" }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E1\u05DE\u05DC (\u05D0\u05D9\u05DE\u05D5\u05D2\u05F3\u05D9)", children: (0, jsx_runtime_1.jsx)("input", { className: "input", value: icon, onChange: (e) => setIcon(e.target.value.slice(0, 4)) }) }), (0, jsx_runtime_1.jsxs)("label", { className: "check-row", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: essential, onChange: (e) => setEssential(e.target.checked) }), " \u05D4\u05D5\u05E6\u05D0\u05D4 \u05D7\u05D9\u05D5\u05E0\u05D9\u05EA (\u05D4\u05DE\u05D0\u05DE\u05DF \u05DC\u05D0 \u05D9\u05DE\u05DC\u05D9\u05E5 \u05DC\u05E7\u05E6\u05E5 \u05D1\u05D4)"] }), (0, jsx_runtime_1.jsx)("div", { className: "row-end", children: (0, jsx_runtime_1.jsx)(ui_1.Btn, { icon: "plus", onClick: add, children: "\u05D4\u05D5\u05E1\u05E4\u05EA \u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D4" }) })] })] });
 }
 
-},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../lib/finance":16,"../lib/categories":14,"../lib/format":17,"../lib/game":15,"../lib/savings":21}];
-defs[39]=[function(module,exports,require){
+},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../lib/finance":16,"../lib/categories":14,"../lib/format":17,"../lib/game":15,"../lib/savings":21,"../components/Attachments":31,"../lib/images":32}];
+defs[41]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnalysisPage = AnalysisPage;
@@ -21621,8 +21815,8 @@ function Compare({ title, a, b, bLabel, disabled }) {
     return (0, jsx_runtime_1.jsxs)("div", { className: "compare", children: [(0, jsx_runtime_1.jsx)("h4", { children: title }), disabled || d === null ? (0, jsx_runtime_1.jsx)("p", { className: "muted small", children: bLabel }) : (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("p", { className: 'cmp-big ' + (d > 0 ? 'up' : 'down'), children: [d > 0 ? '▲' : '▼', " ", (0, format_1.pct)(Math.abs(d), 0)] }), (0, jsx_runtime_1.jsxs)("p", { className: "small", children: [(0, format_1.nis)(a), " \u05DC\u05E2\u05D5\u05DE\u05EA ", (0, format_1.nis)(b)] }), (0, jsx_runtime_1.jsx)("p", { className: "small muted", children: bLabel })] })] });
 }
 
-},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../components/charts":33,"../lib/finance":16,"../lib/analysis":34,"../lib/format":17,"../lib/game":15}];
-defs[40]=[function(module,exports,require){
+},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../components/charts":35,"../lib/finance":16,"../lib/analysis":36,"../lib/format":17,"../lib/game":15}];
+defs[42]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.CoachPage = CoachPage;
@@ -21673,8 +21867,8 @@ function CoachPage() {
                                         : (0, jsx_runtime_1.jsxs)("p", { className: "muted small", children: [(0, jsx_runtime_1.jsx)(ui_1.Badge, { children: "\u05D1\u05E7\u05E8\u05D5\u05D1" }), " \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05DE\u05D5\u05D3\u05DC AI \u05DC\u05E9\u05D0\u05DC\u05D5\u05EA \u05E4\u05EA\u05D5\u05D7\u05D5\u05EA \u2013 \u05D4\u05D0\u05E8\u05DB\u05D9\u05D8\u05E7\u05D8\u05D5\u05E8\u05D4 \u05DE\u05D5\u05DB\u05E0\u05D4."] })] })] })] })] }));
 }
 
-},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../lib/analysis":34,"../integrations":26,"../lib/format":17}];
-defs[41]=[function(module,exports,require){
+},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../lib/analysis":36,"../integrations":26,"../lib/format":17}];
+defs[43]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.frequentProducts = frequentProducts;
@@ -21763,7 +21957,7 @@ function CompareForm({ p, onDone }) {
 }
 
 },{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../lib/finance":16,"../lib/format":17}];
-defs[42]=[function(module,exports,require){
+defs[44]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GoalsPage = GoalsPage;
@@ -21874,7 +22068,7 @@ function DepositForm({ g, onDone }) {
 }
 
 },{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../lib/finance":16,"../lib/format":17,"../lib/game":15,"./Debts":25}];
-defs[43]=[function(module,exports,require){
+defs[45]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReportsPage = ReportsPage;
@@ -21942,13 +22136,14 @@ function ReportsPage() {
                                         }) })] }) }) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "grid-3", children: [(0, jsx_runtime_1.jsx)(ui_1.Card, { title: "\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05D1\u05D9\u05E2\u05D3\u05D9\u05DD", children: s.goals.length ? s.goals.map(g => (0, jsx_runtime_1.jsxs)("div", { className: "budget-line", children: [(0, jsx_runtime_1.jsxs)("span", { children: [g.icon, " ", g.name] }), (0, jsx_runtime_1.jsxs)("small", { children: [(0, format_1.nis)((0, finance_1.goalSaved)(g)), " / ", (0, format_1.nis)(g.target)] }), (0, jsx_runtime_1.jsx)(ui_1.Progress, { value: (0, finance_1.goalProgress)(g), color: "#C9A45C", label: g.name })] }, g.id)) : (0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05D0\u05D9\u05DF \u05D9\u05E2\u05D3\u05D9\u05DD." }) }), (0, jsx_runtime_1.jsx)(ui_1.Card, { title: "\u05DE\u05D5\u05E6\u05E8\u05D9\u05DD \u05E9\u05E0\u05E7\u05E0\u05D9\u05DD \u05D4\u05DB\u05D9 \u05D4\u05E8\u05D1\u05D4", children: products.length ? (0, jsx_runtime_1.jsx)("ol", { className: "rank", children: products.map(p => (0, jsx_runtime_1.jsxs)("li", { children: [(0, jsx_runtime_1.jsx)("span", { children: p.name }), (0, jsx_runtime_1.jsxs)("b", { children: [p.count, "\u00D7"] })] }, p.key)) }) : (0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05E1\u05E8\u05E7\u05D5 \u05E7\u05D1\u05DC\u05D5\u05EA \u05DB\u05D3\u05D9 \u05DC\u05E8\u05D0\u05D5\u05EA \u05DE\u05D5\u05E6\u05E8\u05D9\u05DD." }) }), (0, jsx_runtime_1.jsxs)(ui_1.Card, { title: "\u05EA\u05E9\u05DC\u05D5\u05DE\u05D9\u05DD \u05E7\u05D1\u05D5\u05E2\u05D9\u05DD", children: [rec.length ? (0, jsx_runtime_1.jsx)("ol", { className: "rank", children: rec.slice(0, 8).map(r => (0, jsx_runtime_1.jsxs)("li", { children: [(0, jsx_runtime_1.jsx)("span", { children: r.merchant }), (0, jsx_runtime_1.jsx)("b", { children: (0, format_1.nis)(r.avg) })] }, r.merchant)) }) : (0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05DC\u05D0 \u05D6\u05D5\u05D4\u05D5." }), rec.length > 0 && (0, jsx_runtime_1.jsxs)("p", { className: "small muted", children: ["\u05E1\u05D4\u05F4\u05DB \u05DB-", (0, format_1.nis)(rec.reduce((a, r) => a + r.avg, 0)), " \u05D1\u05D7\u05D5\u05D3\u05E9"] })] })] })] }));
 }
 
-},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../components/charts":33,"../lib/finance":16,"../lib/format":17,"../lib/game":15,"../integrations":26,"./Alternatives":41}];
-defs[44]=[function(module,exports,require){
+},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"../components/charts":35,"../lib/finance":16,"../lib/format":17,"../lib/game":15,"../integrations":26,"./Alternatives":43}];
+defs[46]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SettingsPage = SettingsPage;
 const jsx_runtime_1 = require("react/jsx-runtime");
 const react_1 = require("react");
+const images_1 = require("../lib/images");
 const store_1 = require("../store");
 const ui_1 = require("../components/ui");
 const Expenses_1 = require("./Expenses");
@@ -21994,7 +22189,7 @@ function SettingsPage() {
                                             }
                                             catch {
                                                 st.toast('הקובץ לא נראה כמו גיבוי של CashUp', 'warn');
-                                            } }); } })] }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "danger", icon: "trash", onClick: () => setConfirmAll(true), children: "\u05DE\u05D7\u05D9\u05E7\u05EA \u05DB\u05DC \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD" })] }), json && (0, jsx_runtime_1.jsx)("textarea", { className: "input mono", rows: 5, readOnly: true, value: json, onFocus: (e) => e.target.select(), "aria-label": "\u05E0\u05EA\u05D5\u05E0\u05D9 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05DC\u05D4\u05E2\u05EA\u05E7\u05D4" })] }), (0, jsx_runtime_1.jsx)(Account_1.AccountCard, {}), (0, jsx_runtime_1.jsx)(Share_1.ShareCard, {}), (0, jsx_runtime_1.jsx)(Signup_1.SignupCard, {}), (0, jsx_runtime_1.jsx)(ui_1.Card, { title: "\u2139\uFE0F \u05DE\u05E6\u05D1 \u05D4\u05E4\u05D9\u05E6\u05F3\u05E8\u05D9\u05DD \u05D1\u05D0\u05D1-\u05D8\u05D9\u05E4\u05D5\u05E1", children: (0, jsx_runtime_1.jsx)(FeatureStatus, {}) }), (0, jsx_runtime_1.jsx)(ui_1.Confirm, { open: !!restore, danger: false, yes: "\u05DB\u05DF, \u05DC\u05E9\u05D7\u05D6\u05E8", text: restore ? `לשחזר את הגיבוי (${restore.transactions.length} רשומות, ${restore.goals.length} יעדים)? הנתונים הנוכחיים במכשיר יוחלפו.` : '', onNo: () => setRestore(null), onYes: () => { (0, store_1.replaceState)(st, { ...restore, onboarded: true }, 'הגיבוי שוחזר בהצלחה'); setRestore(null); } }), (0, jsx_runtime_1.jsx)(ui_1.Confirm, { open: confirmAll, text: "\u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05DB\u05DC \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u2013 \u05D4\u05D5\u05E6\u05D0\u05D5\u05EA, \u05E7\u05D1\u05DC\u05D5\u05EA, \u05D9\u05E2\u05D3\u05D9\u05DD \u05D5\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05D1\u05DE\u05E9\u05D7\u05E7? \u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E9\u05D7\u05D6\u05E8.", onNo: () => setConfirmAll(false), onYes: () => { (0, store_1.replaceState)(st, (0, store_1.resetAll)(), 'כל הנתונים נמחקו. מתחילים מחדש!'); setConfirmAll(false); } }), (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: !!connect, onClose: () => setConnect(null), title: connect === 'bank' ? 'חיבור הדגמה – חשבון בנק' : 'חיבור הדגמה – כרטיס אשראי', children: connect && (0, jsx_runtime_1.jsx)(ConsentForm, { kind: connect, onDone: () => setConnect(null) }) }), (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: !!disc, onClose: () => setDisc(null), title: "\u05E0\u05D9\u05EA\u05D5\u05E7 \u05D7\u05E9\u05D1\u05D5\u05DF", children: disc && (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsxs)("p", { className: "lead", children: ["\u05DC\u05E0\u05EA\u05E7 \u05D0\u05EA \"", disc.label, "\"?"] }), (0, jsx_runtime_1.jsxs)("p", { children: ["\u05DE\u05D4 \u05DC\u05E2\u05E9\u05D5\u05EA \u05E2\u05DD ", s.transactions.filter(t => t.connectionId === disc.id).length, " \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05D9\u05D5\u05D1\u05D0\u05D5?"] }), (0, jsx_runtime_1.jsxs)("div", { className: "row-end", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => setDisc(null), children: "\u05D1\u05D9\u05D8\u05D5\u05DC" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: () => { const id = disc.id; st.mutate(d => { d.connections = d.connections.filter(c => c.id !== id); }, 'החשבון נותק; הרשומות נשמרו'); setDisc(null); }, children: "\u05E0\u05D9\u05EA\u05D5\u05E7 \u05D5\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "danger", onClick: () => { const id = disc.id; st.mutate(d => { d.connections = d.connections.filter(c => c.id !== id); d.transactions = d.transactions.filter(t => t.connectionId !== id); }, 'החשבון נותק והנתונים שיובאו נמחקו'); setDisc(null); }, children: "\u05E0\u05D9\u05EA\u05D5\u05E7 \u05D5\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD" })] })] }) })] }));
+                                            } }); } })] }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "danger", icon: "trash", onClick: () => setConfirmAll(true), children: "\u05DE\u05D7\u05D9\u05E7\u05EA \u05DB\u05DC \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD" })] }), json && (0, jsx_runtime_1.jsx)("textarea", { className: "input mono", rows: 5, readOnly: true, value: json, onFocus: (e) => e.target.select(), "aria-label": "\u05E0\u05EA\u05D5\u05E0\u05D9 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05DC\u05D4\u05E2\u05EA\u05E7\u05D4" })] }), (0, jsx_runtime_1.jsx)(Account_1.AccountCard, {}), (0, jsx_runtime_1.jsx)(Share_1.ShareCard, {}), (0, jsx_runtime_1.jsx)(Signup_1.SignupCard, {}), (0, jsx_runtime_1.jsx)(ui_1.Card, { title: "\u2139\uFE0F \u05DE\u05E6\u05D1 \u05D4\u05E4\u05D9\u05E6\u05F3\u05E8\u05D9\u05DD \u05D1\u05D0\u05D1-\u05D8\u05D9\u05E4\u05D5\u05E1", children: (0, jsx_runtime_1.jsx)(FeatureStatus, {}) }), (0, jsx_runtime_1.jsx)(ui_1.Confirm, { open: !!restore, danger: false, yes: "\u05DB\u05DF, \u05DC\u05E9\u05D7\u05D6\u05E8", text: restore ? `לשחזר את הגיבוי (${restore.transactions.length} רשומות, ${restore.goals.length} יעדים)? הנתונים הנוכחיים במכשיר יוחלפו.` : '', onNo: () => setRestore(null), onYes: () => { (0, store_1.replaceState)(st, { ...restore, onboarded: true }, 'הגיבוי שוחזר בהצלחה'); setRestore(null); } }), (0, jsx_runtime_1.jsx)(ui_1.Confirm, { open: confirmAll, text: "\u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05DB\u05DC \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u2013 \u05D4\u05D5\u05E6\u05D0\u05D5\u05EA, \u05E7\u05D1\u05DC\u05D5\u05EA, \u05D9\u05E2\u05D3\u05D9\u05DD \u05D5\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05D1\u05DE\u05E9\u05D7\u05E7? \u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E9\u05D7\u05D6\u05E8.", onNo: () => setConfirmAll(false), onYes: () => { (0, images_1.clearImages)(); (0, store_1.replaceState)(st, (0, store_1.resetAll)(), 'כל הנתונים נמחקו. מתחילים מחדש!'); setConfirmAll(false); } }), (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: !!connect, onClose: () => setConnect(null), title: connect === 'bank' ? 'חיבור הדגמה – חשבון בנק' : 'חיבור הדגמה – כרטיס אשראי', children: connect && (0, jsx_runtime_1.jsx)(ConsentForm, { kind: connect, onDone: () => setConnect(null) }) }), (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: !!disc, onClose: () => setDisc(null), title: "\u05E0\u05D9\u05EA\u05D5\u05E7 \u05D7\u05E9\u05D1\u05D5\u05DF", children: disc && (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsxs)("p", { className: "lead", children: ["\u05DC\u05E0\u05EA\u05E7 \u05D0\u05EA \"", disc.label, "\"?"] }), (0, jsx_runtime_1.jsxs)("p", { children: ["\u05DE\u05D4 \u05DC\u05E2\u05E9\u05D5\u05EA \u05E2\u05DD ", s.transactions.filter(t => t.connectionId === disc.id).length, " \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05E9\u05D9\u05D5\u05D1\u05D0\u05D5?"] }), (0, jsx_runtime_1.jsxs)("div", { className: "row-end", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => setDisc(null), children: "\u05D1\u05D9\u05D8\u05D5\u05DC" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: () => { const id = disc.id; st.mutate(d => { d.connections = d.connections.filter(c => c.id !== id); }, 'החשבון נותק; הרשומות נשמרו'); setDisc(null); }, children: "\u05E0\u05D9\u05EA\u05D5\u05E7 \u05D5\u05E9\u05DE\u05D9\u05E8\u05EA \u05D4\u05E8\u05E9\u05D5\u05DE\u05D5\u05EA" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "danger", onClick: () => { const id = disc.id; st.mutate(d => { d.connections = d.connections.filter(c => c.id !== id); d.transactions = d.transactions.filter(t => t.connectionId !== id); }, 'החשבון נותק והנתונים שיובאו נמחקו'); setDisc(null); }, children: "\u05E0\u05D9\u05EA\u05D5\u05E7 \u05D5\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD" })] })] }) })] }));
 }
 function ConsentForm({ kind, onDone }) {
     const st = (0, store_1.useStore)();
@@ -22018,7 +22213,7 @@ function FeatureStatus() {
     return (0, jsx_runtime_1.jsx)("div", { className: "table-wrap", children: (0, jsx_runtime_1.jsx)("table", { className: "cat-trend", children: (0, jsx_runtime_1.jsx)("tbody", { children: rows.map(r => (0, jsx_runtime_1.jsxs)("tr", { children: [(0, jsx_runtime_1.jsx)("td", { children: r[0] }), (0, jsx_runtime_1.jsx)("td", { children: (0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: lab[r[1]][1], children: lab[r[1]][0] }) }), (0, jsx_runtime_1.jsx)("td", { className: "muted small", children: r[2] })] }, r[0])) }) }) });
 }
 
-},{"react/jsx-runtime":1,"react":7,"../store":12,"../components/ui":23,"./Expenses":38,"../lib/demo":19,"../integrations":26,"../lib/format":17,"../lib/storage":13,"../components/Signup":36,"../components/Share":27,"../components/Account":28,"../components/CheckIn":24}];
+},{"react/jsx-runtime":1,"react":7,"../lib/images":32,"../store":12,"../components/ui":23,"./Expenses":40,"../lib/demo":19,"../integrations":26,"../lib/format":17,"../lib/storage":13,"../components/Signup":38,"../components/Share":27,"../components/Account":28,"../components/CheckIn":24}];
 function req(id){if(cache[id])return cache[id].exports;var m=cache[id]={exports:{}};var d=defs[id];d[0].call(m.exports,m,m.exports,function(s){return req(d[1][s]);});return m.exports;}req(0);})();</script>
 </body>
 </html>
