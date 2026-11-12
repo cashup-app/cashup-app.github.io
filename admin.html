@@ -58,7 +58,7 @@ input{padding:10px;border-radius:10px;border:1.5px solid #D5DBD3;font:inherit;mi
       '<div class="row"><input id="q" placeholder="חיפוש לפי מייל או שם"><button class="btn ghost" id="csv">העתקת רשימת מיילים (רק מי שהסכים)</button><span class="muted" id="msg"></span></div>' +
       '<table><thead><tr><th>מייל</th><th class="hide-sm">שם</th><th>נרשם/ה</th><th>פעילות אחרונה</th><th class="hide-sm">דרגת העיר</th><th class="hide-sm">שלב בדרך לחופש</th><th class="hide-sm">מיילים</th></tr></thead><tbody id="tb"></tbody></table>' +
       (stale.length ? '<div class="stale"><b>' + stale.length + ' חשבונות לא היו פעילים יותר מ-24 חודשים.</b> לפי מדיניות השמירה יש למחוק אותם. <button class="btn" id="purge">מחיקת הרשומות שלהם</button><span class="muted" id="pmsg"></span></div>' : '<p class="muted">✓ אין חשבונות שעברו את תקופת השמירה (24 חודשים ללא פעילות).</p>') +
-      '<p class="muted" style="margin-top:14px">🔒 כאן מופיעים רק פרטי חשבון והתקדמות. הנתונים הפיננסיים של המשתמשים לא נשמרים בשרת ואינם זמינים כאן. להסרת משתמש לפי בקשה: Firebase → Authentication ו-Firestore → users.</p>';
+      '<p class="muted" style="margin-top:14px">🔒 כאן מופיעים רק פרטי חשבון והתקדמות. הנתונים הפיננסיים של המשתמשים לא מוצגים כאן, וחוקי האבטחה מאפשרים רק למשתמש עצמו לקרוא אותם. להסרת משתמש לפי בקשה: Firebase → Authentication ו-Firestore → users.</p>';
     function rows(f) {
       document.getElementById('tb').innerHTML = users.filter(function (u) { return !f || (String(u.email) + ' ' + String(u.name)).toLowerCase().indexOf(f) >= 0; }).map(function (u) {
         var d = daysAgo(u.lastActive);
@@ -70,7 +70,7 @@ input{padding:10px;border-radius:10px;border:1.5px solid #D5DBD3;font:inherit;mi
     if (pb) pb.onclick = function () {
       if (!confirm('למחוק ' + stale.length + ' רשומות של חשבונות לא פעילים? לא ניתן לבטל.')) return;
       pb.disabled = true;
-      Promise.all(stale.map(function (u) { return db.collection('users').doc(u.id).delete(); })).then(function () {
+      Promise.all(stale.map(function (u) { return Promise.all([db.collection('states').doc(u.id).delete().catch(function () {}), db.collection('users').doc(u.id).delete()]); })).then(function () {
         var list = stale.map(function (u) { return u.email; }).join('\n');
         document.getElementById('pmsg').textContent = ' הרשומות נמחקו. עכשיו מחקו את אותם משתמשים גם ב-Firebase Console → Authentication. הרשימה הועתקה.';
         try { navigator.clipboard.writeText(list); } catch (e) {}
