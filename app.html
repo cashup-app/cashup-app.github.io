@@ -769,6 +769,17 @@ html.simple .btn{min-height:54px}
 .att-add b{font-size:1.5rem;line-height:1;color:var(--brand-2)}.att-add:hover{border-color:#C9A45C}
 .att-full{display:block;max-width:100%;max-height:75vh;margin:0 auto;border-radius:8px}
 .att-badge{border:1px solid var(--line);background:#fff;border-radius:999px;padding:1px 8px;font-size:.85rem;cursor:pointer}
+
+/* sign-in gate */
+.auth-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(31,107,87,.18),transparent 70%),var(--bg)}
+.auth-card{width:100%;max-width:440px;background:#fff;border:1px solid var(--line);border-top:4px solid #C9A45C;border-radius:18px;padding:26px 24px;box-shadow:0 30px 60px -30px rgba(12,45,39,.35)}
+.auth-card .form-grid{grid-template-columns:1fr}
+.auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.auth-brand img{width:48px;height:48px;border-radius:12px}
+.auth-brand strong{display:block;font-family:var(--display);font-size:1.6rem;color:#0C2D27;line-height:1}
+.auth-brand small{color:#9C7A36}
+.auth-loading{text-align:center}.auth-loading img{width:64px;height:64px;border-radius:16px}
+.auth-screen>p{max-width:440px}
 /*PREMIUM-START*/
 /* ================= Premium layer: "banknote" identity ================= */
 :root{--brass:#C9A45C;--brass-hi:#E2C788;--brass-lo:#9C7A36;--note:#0C2D27;--note-2:#123E36;--cream-ink:#EFE8D6;
@@ -18224,8 +18235,33 @@ const PAGES = {
     home: Dashboard_1.Dashboard, game: Game_1.GamePage, expenses: Expenses_1.ExpensesPage, scanner: Dashboard_1.Dashboard, analysis: Analysis_1.AnalysisPage,
     coach: Coach_1.CoachPage, alternatives: Alternatives_1.AlternativesPage, goals: Goals_1.GoalsPage, reports: Reports_1.ReportsPage, settings: Settings_1.SettingsPage,
 };
+/** Entry: when accounts are configured, the app opens only for a signed-in user, with that user's own data. */
 function App() {
-    const store = (0, store_1.useCreateStore)();
+    const [auth, setAuth] = (0, react_1.useState)(() => ({ state: (0, account_1.accountsEnabled)() ? 'loading' : 'in' }));
+    (0, react_1.useEffect)(() => {
+        if (!(0, account_1.accountsEnabled)())
+            return;
+        let unsub = null, alive = true;
+        const offline = setTimeout(() => { const u = (0, account_1.lastUser)(); if (alive && u)
+            setAuth(a => (a.state === 'loading' ? { state: 'in', user: u } : a)); }, 6000);
+        (0, account_1.onAuthChange)(u => { if (!alive)
+            return; clearTimeout(offline); (0, account_1.rememberUser)(u); setAuth(u ? { state: 'in', user: u } : { state: 'out' }); })
+            .then(f => { unsub = f; })
+            .catch(() => { clearTimeout(offline); const u = (0, account_1.lastUser)(); if (alive)
+            setAuth(u ? { state: 'in', user: u } : { state: 'error' }); });
+        return () => { alive = false; clearTimeout(offline); if (unsub)
+            unsub(); };
+    }, []);
+    if (auth.state === 'loading')
+        return (0, jsx_runtime_1.jsx)("div", { className: "auth-screen", children: (0, jsx_runtime_1.jsxs)("div", { className: "auth-loading", children: [(0, jsx_runtime_1.jsx)("img", { src: "img/icon-192.png", alt: "" }), (0, jsx_runtime_1.jsx)("p", { className: "muted", children: "\u05D8\u05D5\u05E2\u05E0\u05D9\u05DD\u2026" })] }) });
+    if (auth.state === 'error')
+        return (0, jsx_runtime_1.jsx)("div", { className: "auth-screen", children: (0, jsx_runtime_1.jsxs)("div", { className: "auth-card", children: [(0, jsx_runtime_1.jsx)("h2", { children: "\u05D0\u05D9\u05DF \u05D7\u05D9\u05D1\u05D5\u05E8" }), (0, jsx_runtime_1.jsx)("p", { children: "\u05D1\u05DB\u05E0\u05D9\u05E1\u05D4 \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4 \u05E6\u05E8\u05D9\u05DA \u05D7\u05D9\u05D1\u05D5\u05E8 \u05DC\u05D0\u05D9\u05E0\u05D8\u05E8\u05E0\u05D8. \u05D1\u05D3\u05E7\u05D5 \u05D0\u05EA \u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05D5\u05E0\u05E1\u05D5 \u05E9\u05D5\u05D1." }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "gold", big: true, onClick: () => location.reload(), children: "\u05DC\u05E0\u05E1\u05D5\u05EA \u05E9\u05D5\u05D1" })] }) });
+    if (auth.state === 'out')
+        return (0, jsx_runtime_1.jsx)(Account_1.AuthScreen, {});
+    return (0, jsx_runtime_1.jsx)(Shell, { user: auth.user || null }, auth.user?.uid || 'local');
+}
+function Shell({ user }) {
+    const store = (0, store_1.useCreateStore)(user);
     const { s } = store;
     (0, react_1.useEffect)(() => {
         const r = document.documentElement;
@@ -18292,7 +18328,7 @@ function Welcome() {
         }
         catch { /* optional */ }
     };
-    return ((0, jsx_runtime_1.jsx)(ui_1.Modal, { open: true, onClose: () => done(false), title: "\u05D1\u05E8\u05D5\u05DB\u05D9\u05DD \u05D4\u05D1\u05D0\u05D9\u05DD \u05DC-CashUp \uD83C\uDF05", children: (0, jsx_runtime_1.jsxs)("div", { className: "welcome", children: [(0, jsx_runtime_1.jsx)("p", { className: "lead", children: "\u05D1\u05D5\u05E0\u05D9\u05DD \u05E2\u05D9\u05E8 \u05E7\u05D8\u05E0\u05D4 \u2013 \u05D5\u05D1\u05D3\u05E8\u05DA \u05DE\u05D2\u05D9\u05E2\u05D9\u05DD \u05DC\u05D7\u05D5\u05E4\u05E9 \u05DB\u05DC\u05DB\u05DC\u05D9. \u05DB\u05DC \u05DE\u05E9\u05D9\u05DE\u05D4 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9\u05EA \u05E9\u05EA\u05E9\u05DC\u05D9\u05DE\u05D5 \u05DE\u05E9\u05D3\u05E8\u05D2\u05EA \u05D0\u05EA \u05D4\u05E2\u05D9\u05E8 \u05E9\u05DC\u05DB\u05DD." }), (0, jsx_runtime_1.jsxs)("ul", { className: "welcome-list", children: [(0, jsx_runtime_1.jsxs)("li", { children: ["\uD83D\uDD12 ", (0, jsx_runtime_1.jsx)("b", { children: "\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD \u05D0\u05E6\u05DC\u05DB\u05DD." }), " \u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA, \u05D4\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA \u05D5\u05D4\u05D7\u05E1\u05DB\u05D5\u05E0\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4. \u05D7\u05E9\u05D1\u05D5\u05DF (\u05E8\u05E9\u05D5\u05EA) \u05E9\u05D5\u05DE\u05E8 \u05E8\u05E7 \u05DE\u05D9\u05D9\u05DC \u05D5\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA."] }), (0, jsx_runtime_1.jsx)("li", { children: "\uD83D\uDCBE \u05DE\u05D5\u05DE\u05DC\u05E5 \u05DC\u05D2\u05D1\u05D5\u05EA \u05DE\u05D3\u05D9 \u05E4\u05E2\u05DD (\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u2190 \u05D2\u05D9\u05D1\u05D5\u05D9), \u05DB\u05D9 \u05DE\u05D7\u05D9\u05E7\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05DE\u05D5\u05D7\u05E7\u05EA \u05D2\u05DD \u05D0\u05EA \u05D4\u05DE\u05D9\u05D3\u05E2." }), (0, jsx_runtime_1.jsx)("li", { children: "\uD83E\uDDED \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05E2\u05D5\u05D6\u05E8\u05EA \u05DC\u05E2\u05E9\u05D5\u05EA \u05E1\u05D3\u05E8 \u05D5\u05DC\u05D4\u05D1\u05D9\u05DF \u2013 \u05D4\u05D9\u05D0 \u05DC\u05D0 \u05D9\u05D9\u05E2\u05D5\u05E5 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9." })] }), (0, jsx_runtime_1.jsxs)("div", { className: "welcome-actions", children: [(0, account_1.accountsEnabled)() && (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "gold", onClick: () => { done(true); st.openAccount(); }, children: "\u05D9\u05E6\u05D9\u05E8\u05EA \u05D7\u05E9\u05D1\u05D5\u05DF \u05D5\u05D4\u05EA\u05D7\u05DC\u05D4" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: (0, account_1.accountsEnabled)() ? 'soft' : 'gold', icon: "plus", onClick: () => done(true), children: (0, account_1.accountsEnabled)() ? 'להתחיל בלי חשבון' : 'להתחיל מאפס עם הנתונים שלי' }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "ghost", onClick: () => done(false), children: "\u05DC\u05D4\u05E6\u05D9\u05E5 \u05E7\u05D5\u05D3\u05DD \u05E2\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D3\u05D5\u05D2\u05DE\u05D4" })] }), (0, jsx_runtime_1.jsxs)("p", { className: "muted small legal-line", children: ["\u05D1\u05DC\u05D7\u05D9\u05E6\u05D4 \u05E2\u05DC \u05D0\u05D7\u05D3 \u05D4\u05DB\u05E4\u05EA\u05D5\u05E8\u05D9\u05DD \u05D0\u05EA\u05DD \u05DE\u05D0\u05E9\u05E8\u05D9\u05DD \u05E9\u05E7\u05E8\u05D0\u05EA\u05DD \u05D5\u05DE\u05E1\u05DB\u05D9\u05DE\u05D9\u05DD \u05DC", (0, jsx_runtime_1.jsx)("a", { href: "terms.html", target: "_blank", rel: "noopener", children: "\u05EA\u05E0\u05D0\u05D9 \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9" }), " \u05D5\u05DC", (0, jsx_runtime_1.jsx)("a", { href: "privacy.html", target: "_blank", rel: "noopener", children: "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA" }), ". \u05D4\u05DE\u05D9\u05D3\u05E2 \u05D1\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05DB\u05DC\u05DC\u05D9 \u05D1\u05DC\u05D1\u05D3, \u05D5\u05DB\u05DC \u05D4\u05D7\u05DC\u05D8\u05D4 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9\u05EA \u05D4\u05D9\u05D0 \u05D1\u05D0\u05D7\u05E8\u05D9\u05D5\u05EA\u05DB\u05DD."] })] }) }));
+    return ((0, jsx_runtime_1.jsx)(ui_1.Modal, { open: true, onClose: () => done(false), title: "\u05D1\u05E8\u05D5\u05DB\u05D9\u05DD \u05D4\u05D1\u05D0\u05D9\u05DD \u05DC-CashUp \uD83C\uDF05", children: (0, jsx_runtime_1.jsxs)("div", { className: "welcome", children: [(0, jsx_runtime_1.jsx)("p", { className: "lead", children: "\u05D1\u05D5\u05E0\u05D9\u05DD \u05E2\u05D9\u05E8 \u05E7\u05D8\u05E0\u05D4 \u2013 \u05D5\u05D1\u05D3\u05E8\u05DA \u05DE\u05D2\u05D9\u05E2\u05D9\u05DD \u05DC\u05D7\u05D5\u05E4\u05E9 \u05DB\u05DC\u05DB\u05DC\u05D9. \u05DB\u05DC \u05DE\u05E9\u05D9\u05DE\u05D4 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9\u05EA \u05E9\u05EA\u05E9\u05DC\u05D9\u05DE\u05D5 \u05DE\u05E9\u05D3\u05E8\u05D2\u05EA \u05D0\u05EA \u05D4\u05E2\u05D9\u05E8 \u05E9\u05DC\u05DB\u05DD." }), (0, jsx_runtime_1.jsxs)("ul", { className: "welcome-list", children: [(0, jsx_runtime_1.jsxs)("li", { children: ["\uD83D\uDD12 ", (0, jsx_runtime_1.jsx)("b", { children: "\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD \u05D0\u05E6\u05DC\u05DB\u05DD." }), " \u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA, \u05D4\u05D4\u05DB\u05E0\u05E1\u05D5\u05EA \u05D5\u05D4\u05D7\u05E1\u05DB\u05D5\u05E0\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4 \u05D5\u05E0\u05E4\u05EA\u05D7\u05D9\u05DD \u05E8\u05E7 \u05D1\u05DB\u05E0\u05D9\u05E1\u05D4 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05DC\u05DB\u05DD."] }), (0, jsx_runtime_1.jsx)("li", { children: "\uD83D\uDCBE \u05DE\u05D5\u05DE\u05DC\u05E5 \u05DC\u05D2\u05D1\u05D5\u05EA \u05DE\u05D3\u05D9 \u05E4\u05E2\u05DD (\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u2190 \u05D2\u05D9\u05D1\u05D5\u05D9), \u05DB\u05D9 \u05DE\u05D7\u05D9\u05E7\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05DE\u05D5\u05D7\u05E7\u05EA \u05D2\u05DD \u05D0\u05EA \u05D4\u05DE\u05D9\u05D3\u05E2." }), (0, jsx_runtime_1.jsx)("li", { children: "\uD83E\uDDED \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05E2\u05D5\u05D6\u05E8\u05EA \u05DC\u05E2\u05E9\u05D5\u05EA \u05E1\u05D3\u05E8 \u05D5\u05DC\u05D4\u05D1\u05D9\u05DF \u2013 \u05D4\u05D9\u05D0 \u05DC\u05D0 \u05D9\u05D9\u05E2\u05D5\u05E5 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9." })] }), (0, jsx_runtime_1.jsxs)("div", { className: "welcome-actions", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "gold", icon: "plus", onClick: () => done(true), children: "\u05DC\u05D4\u05EA\u05D7\u05D9\u05DC \u05E2\u05DD \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC\u05D9" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { big: true, kind: "ghost", onClick: () => done(false), children: "\u05DC\u05D4\u05E6\u05D9\u05E5 \u05E7\u05D5\u05D3\u05DD \u05E2\u05DD \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D3\u05D5\u05D2\u05DE\u05D4" })] }), (0, jsx_runtime_1.jsxs)("p", { className: "muted small legal-line", children: ["\u05D4\u05DE\u05D9\u05D3\u05E2 \u05D1\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05DB\u05DC\u05DC\u05D9 \u05D1\u05DC\u05D1\u05D3, \u05D5\u05DB\u05DC \u05D4\u05D7\u05DC\u05D8\u05D4 \u05E4\u05D9\u05E0\u05E0\u05E1\u05D9\u05EA \u05D4\u05D9\u05D0 \u05D1\u05D0\u05D7\u05E8\u05D9\u05D5\u05EA\u05DB\u05DD (\u05E8\u05D0\u05D5 ", (0, jsx_runtime_1.jsx)("a", { href: "terms.html", target: "_blank", rel: "noopener", children: "\u05EA\u05E0\u05D0\u05D9 \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9" }), ")."] })] }) }));
 }
 
 },{"react/jsx-runtime":1,"react":7,"./store":12,"./components/ui":23,"./components/CheckIn":24,"./components/Share":27,"./components/Account":28,"./lib/account":22,"./components/ExpenseForm":30,"./lib/game":15,"./lib/notifications":33,"./lib/format":17,"./pages/Dashboard":34,"./pages/Game":39,"./pages/Expenses":40,"./pages/Analysis":41,"./pages/Coach":42,"./pages/Alternatives":43,"./pages/Goals":44,"./pages/Reports":45,"./pages/Settings":46}];
@@ -18316,12 +18352,11 @@ const account_1 = require("./lib/account");
 exports.StoreCtx = (0, react_1.createContext)(null);
 const useStore = () => (0, react_1.useContext)(exports.StoreCtx);
 exports.useStore = useStore;
-const repo = new storage_1.LocalRepository();
 const PAGES = ['home', 'game', 'expenses', 'scanner', 'analysis', 'coach', 'alternatives', 'goals', 'reports', 'settings'];
 exports.PAGES = PAGES;
 const HASH = { home: 'home', game: 'board', expenses: 'expenses', scanner: 'scanner', analysis: 'analysis', coach: 'coach', alternatives: 'alternatives', goals: 'goals', reports: 'reports', settings: 'preferences' };
 const fromHash = () => { const h = location.hash.replace('#', ''); const p = Object.keys(HASH).find(k => HASH[k] === h); return p || 'game'; };
-function initial() {
+function initial(repo) {
     const loaded = repo.load();
     if (loaded)
         return loaded;
@@ -18330,15 +18365,15 @@ function initial() {
     s.demoLoaded = true;
     return s;
 }
-function useCreateStore() {
-    const [s, setS] = (0, react_1.useState)(initial);
+function useCreateStore(user = null) {
+    const [repo] = (0, react_1.useState)(() => new storage_1.LocalRepository(user ? (0, storage_1.userKey)(user.uid) : undefined));
+    const [s, setS] = (0, react_1.useState)(() => initial(repo));
     const ref = (0, react_1.useRef)(s);
     const [page, setPage] = (0, react_1.useState)(fromHash());
     const [pageOpts, setPageOpts] = (0, react_1.useState)(null);
     const [toasts, setToasts] = (0, react_1.useState)([]);
     const [addOpen, setAddOpen] = (0, react_1.useState)(null);
     const [checkinOpen, setCheckinOpen] = (0, react_1.useState)(false);
-    const [user, setUser] = (0, react_1.useState)(null);
     const [accountOpen, setAccountOpen] = (0, react_1.useState)(false);
     const pendingConsent = (0, react_1.useRef)(null);
     const cloudRef = (0, react_1.useRef)(null);
@@ -18397,22 +18432,14 @@ function useCreateStore() {
             if (added.length)
                 mutate(d => { (0, habits_1.applyRecurring)(d); }, added.length === 1 ? `נוסף אוטומטית: ${added[0].merchant}` : `נוספו אוטומטית ${added.length} תשלומים קבועים לחודש הזה`);
         }, 600);
-        // Optional accounts: identity + non-financial progress only.
-        let unsubAuth = null;
-        if ((0, account_1.accountsEnabled)())
-            (0, account_1.onAuthChange)(u => {
-                setUser(u);
-                if (u) {
-                    const extra = {};
-                    if (pendingConsent.current !== null) {
-                        extra.marketingConsent = pendingConsent.current;
-                        pendingConsent.current = null;
-                        setAccountOpen(false);
-                        toast('ברוכים הבאים! החשבון מוכן 🎉');
-                    }
-                    (0, account_1.syncProfile)(u, ref.current, extra).catch(() => { });
-                }
-            }).then(f => { unsubAuth = f; }).catch(() => { });
+        // Account profile: identity + non-financial progress only. Signup details (terms acceptance, consent) are written once.
+        if (user) {
+            const extra = (0, account_1.takePendingSignup)() || {};
+            if (extra.termsVersion) {
+                mutate(d => { d.visits.terms = account_1.TERMS_VERSION; });
+            }
+            (0, account_1.syncProfile)(user, ref.current, extra).catch(() => { });
+        }
         const onHash = () => setPage(fromHash());
         window.addEventListener('hashchange', onHash);
         // Optional private cloud sync (artifact host). Local data always works without it.
@@ -18434,8 +18461,7 @@ function useCreateStore() {
                 c.push(ref.current);
             setCloud(c.label);
         });
-        return () => { alive = false; window.removeEventListener('hashchange', onHash); if (unsubAuth)
-            unsubAuth(); };
+        return () => { alive = false; window.removeEventListener('hashchange', onHash); };
     }, []);
     return {
         s, mutate, page, go, pageOpts, toasts, toast, speak, cloud,
@@ -18492,7 +18518,7 @@ function replaceState(store, next, msg) {
 defs[13]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.LocalRepository = exports.STATE_VERSION = void 0;
+exports.LocalRepository = exports.userKey = exports.STATE_VERSION = void 0;
 exports.emptyState = emptyState;
 exports.migrate = migrate;
 exports.connectCloud = connectCloud;
@@ -18500,10 +18526,24 @@ const categories_1 = require("./categories");
 const game_1 = require("./game");
 const KEY = 'moneyquest:v1';
 exports.STATE_VERSION = 1;
+const userKey = (uid) => `${KEY}:u:${uid}`;
+exports.userKey = userKey;
 class LocalRepository {
+    constructor(key = KEY) {
+        this.key = key;
+    }
     load() {
         try {
-            const raw = localStorage.getItem(KEY);
+            let raw = localStorage.getItem(this.key);
+            // First sign-in on a device that already has (pre-accounts) data: that data goes to this user.
+            if (!raw && this.key !== KEY) {
+                const legacy = localStorage.getItem(KEY);
+                if (legacy) {
+                    raw = legacy;
+                    localStorage.setItem(this.key, legacy);
+                    localStorage.removeItem(KEY);
+                }
+            }
             return raw ? migrate(JSON.parse(raw)) : null;
         }
         catch {
@@ -18512,18 +18552,18 @@ class LocalRepository {
     }
     save(s) {
         try {
-            localStorage.setItem(KEY, JSON.stringify(s));
+            localStorage.setItem(this.key, JSON.stringify(s));
         }
         catch {
             // Quota exceeded – drop optional receipt thumbnails first, never financial records.
             try {
-                localStorage.setItem(KEY, JSON.stringify({ ...s, receipts: s.receipts.map(r => ({ ...r, image: undefined })) }));
+                localStorage.setItem(this.key, JSON.stringify({ ...s, receipts: s.receipts.map(r => ({ ...r, image: undefined })) }));
             }
             catch { /* storage unavailable */ }
         }
     }
     clear() { try {
-        localStorage.removeItem(KEY);
+        localStorage.removeItem(this.key);
     }
     catch { /* ignore */ } }
 }
@@ -19725,10 +19765,11 @@ function removeSaving(d, t) {
 defs[22]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.accountsEnabled = void 0;
+exports.lastUser = exports.rememberUser = exports.takePendingSignup = exports.setPendingSignup = exports.TERMS_VERSION = exports.accountsEnabled = void 0;
 exports.firebase = firebase;
 exports.onAuthChange = onAuthChange;
 exports.signInGoogle = signInGoogle;
+exports.passwordProblem = passwordProblem;
 exports.signUpEmail = signUpEmail;
 exports.signInEmail = signInEmail;
 exports.resetPassword = resetPassword;
@@ -19786,15 +19827,52 @@ async function signInGoogle() {
             throw e;
     }
 }
+exports.TERMS_VERSION = '2026-11-12';
+/** Details collected on the signup form, written to the profile once the account exists. */
+let pendingSignup = null;
+const setPendingSignup = (v) => { pendingSignup = v; };
+exports.setPendingSignup = setPendingSignup;
+const takePendingSignup = () => { const v = pendingSignup; pendingSignup = null; return v; };
+exports.takePendingSignup = takePendingSignup;
+/** Last signed-in user, so the app can still open offline (Firebase SDK loads from the network). */
+const LAST = 'cashup:lastUser';
+const rememberUser = (u) => { try {
+    if (u)
+        localStorage.setItem(LAST, JSON.stringify(u));
+    else
+        localStorage.removeItem(LAST);
+}
+catch { /* ignore */ } };
+exports.rememberUser = rememberUser;
+const lastUser = () => { try {
+    const v = localStorage.getItem(LAST);
+    return v ? JSON.parse(v) : null;
+}
+catch {
+    return null;
+} };
+exports.lastUser = lastUser;
+/** Password rule: at least 8 characters, with letters and digits. */
+function passwordProblem(pw) {
+    if (pw.length < 8)
+        return 'הסיסמה צריכה לכלול לפחות 8 תווים';
+    if (!/[A-Za-z\u0590-\u05FF]/.test(pw) || !/\d/.test(pw))
+        return 'הסיסמה צריכה לכלול גם אותיות וגם ספרות';
+    return '';
+}
 async function signUpEmail(email, password, name) {
     const fb = await firebase();
     const r = await fb.auth().createUserWithEmailAndPassword(email, password);
     if (name)
         await r.user.updateProfile({ displayName: name });
+    try {
+        await r.user.sendEmailVerification();
+    }
+    catch { /* optional */ }
 }
 async function signInEmail(email, password) { const fb = await firebase(); await fb.auth().signInWithEmailAndPassword(email, password); }
 async function resetPassword(email) { const fb = await firebase(); await fb.auth().sendPasswordResetEmail(email); }
-async function signOut() { const fb = await firebase(); await fb.auth().signOut(); }
+async function signOut() { (0, exports.rememberUser)(null); const fb = await firebase(); await fb.auth().signOut(); }
 /** Upsert the (non-financial) profile document. */
 async function syncProfile(u, s, extra = {}) {
     const fb = await firebase();
@@ -19826,7 +19904,11 @@ function authErrorHe(e) {
     if (c.includes('email-already-in-use'))
         return 'כבר קיים חשבון עם המייל הזה – נסו להתחבר';
     if (c.includes('weak-password'))
-        return 'הסיסמה חלשה מדי – לפחות 6 תווים';
+        return 'הסיסמה חלשה מדי – לפחות 8 תווים, עם אותיות וספרות';
+    if (c.includes('operation-not-allowed'))
+        return 'ההרשמה במייל וסיסמה עוד לא הופעלה (Firebase → Authentication → Sign-in method → Email/Password)';
+    if (c.includes('network-request-failed'))
+        return 'אין חיבור לאינטרנט. בדקו את החיבור ונסו שוב';
     if (c.includes('wrong-password') || c.includes('invalid-credential') || c.includes('user-not-found'))
         return 'המייל או הסיסמה לא נכונים';
     if (c.includes('too-many-requests'))
@@ -20521,7 +20603,7 @@ function ShareCard() {
     const share = useShareApp();
     const url = (0, exports.appLink)();
     const wa = 'https://wa.me/?text=' + encodeURIComponent('בונים עיר ומגיעים לחופש כלכלי 🌅 CashUp: ' + url);
-    return ((0, jsx_runtime_1.jsxs)(ui_1.Card, { title: "\uD83D\uDCF2 \u05E9\u05D9\u05EA\u05D5\u05E3 \u05D5\u05D4\u05D5\u05E1\u05E4\u05D4 \u05DC\u05DE\u05E1\u05DA \u05D4\u05D1\u05D9\u05EA", children: [(0, jsx_runtime_1.jsx)("p", { children: "\u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05E0\u05E4\u05EA\u05D7\u05EA \u05DE\u05DB\u05DC \u05D8\u05DC\u05E4\u05D5\u05DF \u05D1\u05E7\u05D9\u05E9\u05D5\u05E8 \u2013 \u05D1\u05DC\u05D9 \u05D4\u05D5\u05E8\u05D3\u05D4 \u05D5\u05D1\u05DC\u05D9 \u05D4\u05E8\u05E9\u05DE\u05D4:" }), (0, jsx_runtime_1.jsx)("p", { className: "share-url", dir: "ltr", children: url.replace(/^https?:\/\//, '') }), (0, jsx_runtime_1.jsxs)("div", { className: "row-gap wrap", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "gold", onClick: share, children: "\u05E9\u05D9\u05EA\u05D5\u05E3 \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4" }), (0, jsx_runtime_1.jsx)("a", { className: "btn btn-soft", href: wa, target: "_blank", rel: "noopener", children: "\uD83D\uDCAC \u05E9\u05DC\u05D9\u05D7\u05D4 \u05D1\u05D5\u05D5\u05D0\u05D8\u05E1\u05D0\u05E4" })] }), (0, jsx_runtime_1.jsxs)("details", { className: "deps", style: { marginTop: 12 }, children: [(0, jsx_runtime_1.jsx)("summary", { children: "\u05E8\u05D5\u05E6\u05D9\u05DD \u05D0\u05D9\u05D9\u05E7\u05D5\u05DF \u05D1\u05DE\u05E1\u05DA \u05D4\u05D1\u05D9\u05EA? (\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4)" }), (0, jsx_runtime_1.jsxs)("p", { className: "small", children: [(0, jsx_runtime_1.jsx)("b", { children: "\u05D0\u05D9\u05D9\u05E4\u05D5\u05DF:" }), " Safari \u2190 \u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4\u05E9\u05D9\u05EA\u05D5\u05E3 \u2B06\uFE0F \u2190 \"\u05D4\u05D5\u05E1\u05E4\u05D4 \u05DC\u05DE\u05E1\u05DA \u05D4\u05D1\u05D9\u05EA\".", (0, jsx_runtime_1.jsx)("br", {}), (0, jsx_runtime_1.jsx)("b", { children: "\u05D0\u05E0\u05D3\u05E8\u05D5\u05D0\u05D9\u05D3:" }), " Chrome \u2190 \u05EA\u05E4\u05E8\u05D9\u05D8 \u22EE \u2190 \"\u05D4\u05EA\u05E7\u05E0\u05EA \u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4\".", (0, jsx_runtime_1.jsx)("br", {}), "\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF \u05D4\u05D6\u05D4 \u2013 \u05DB\u05D3\u05D0\u05D9 \u05DC\u05E4\u05EA\u05D5\u05D7 \u05EA\u05DE\u05D9\u05D3 \u05DE\u05D0\u05D5\u05EA\u05D5 \u05D3\u05E4\u05D3\u05E4\u05DF."] })] })] }));
+    return ((0, jsx_runtime_1.jsxs)(ui_1.Card, { title: "\uD83D\uDCF2 \u05E9\u05D9\u05EA\u05D5\u05E3 \u05D5\u05D4\u05D5\u05E1\u05E4\u05D4 \u05DC\u05DE\u05E1\u05DA \u05D4\u05D1\u05D9\u05EA", children: [(0, jsx_runtime_1.jsx)("p", { children: "\u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4 \u05E0\u05E4\u05EA\u05D7\u05EA \u05DE\u05DB\u05DC \u05D8\u05DC\u05E4\u05D5\u05DF \u05D1\u05E7\u05D9\u05E9\u05D5\u05E8 \u2013 \u05D1\u05DC\u05D9 \u05D4\u05D5\u05E8\u05D3\u05D4, \u05E2\u05DD \u05D4\u05E8\u05E9\u05DE\u05D4 \u05E7\u05E6\u05E8\u05D4:" }), (0, jsx_runtime_1.jsx)("p", { className: "share-url", dir: "ltr", children: url.replace(/^https?:\/\//, '') }), (0, jsx_runtime_1.jsxs)("div", { className: "row-gap wrap", children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "gold", onClick: share, children: "\u05E9\u05D9\u05EA\u05D5\u05E3 \u05D4\u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4" }), (0, jsx_runtime_1.jsx)("a", { className: "btn btn-soft", href: wa, target: "_blank", rel: "noopener", children: "\uD83D\uDCAC \u05E9\u05DC\u05D9\u05D7\u05D4 \u05D1\u05D5\u05D5\u05D0\u05D8\u05E1\u05D0\u05E4" })] }), (0, jsx_runtime_1.jsxs)("details", { className: "deps", style: { marginTop: 12 }, children: [(0, jsx_runtime_1.jsx)("summary", { children: "\u05E8\u05D5\u05E6\u05D9\u05DD \u05D0\u05D9\u05D9\u05E7\u05D5\u05DF \u05D1\u05DE\u05E1\u05DA \u05D4\u05D1\u05D9\u05EA? (\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4)" }), (0, jsx_runtime_1.jsxs)("p", { className: "small", children: [(0, jsx_runtime_1.jsx)("b", { children: "\u05D0\u05D9\u05D9\u05E4\u05D5\u05DF:" }), " Safari \u2190 \u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4\u05E9\u05D9\u05EA\u05D5\u05E3 \u2B06\uFE0F \u2190 \"\u05D4\u05D5\u05E1\u05E4\u05D4 \u05DC\u05DE\u05E1\u05DA \u05D4\u05D1\u05D9\u05EA\".", (0, jsx_runtime_1.jsx)("br", {}), (0, jsx_runtime_1.jsx)("b", { children: "\u05D0\u05E0\u05D3\u05E8\u05D5\u05D0\u05D9\u05D3:" }), " Chrome \u2190 \u05EA\u05E4\u05E8\u05D9\u05D8 \u22EE \u2190 \"\u05D4\u05EA\u05E7\u05E0\u05EA \u05D0\u05E4\u05DC\u05D9\u05E7\u05E6\u05D9\u05D4\".", (0, jsx_runtime_1.jsx)("br", {}), "\u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF \u05D4\u05D6\u05D4 \u2013 \u05DB\u05D3\u05D0\u05D9 \u05DC\u05E4\u05EA\u05D5\u05D7 \u05EA\u05DE\u05D9\u05D3 \u05DE\u05D0\u05D5\u05EA\u05D5 \u05D3\u05E4\u05D3\u05E4\u05DF."] })] })] }));
 }
 
 },{"react/jsx-runtime":1,"../store":12,"./ui":23}];
@@ -20530,6 +20612,7 @@ defs[28]=[function(module,exports,require){
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.syncProfile = void 0;
 exports.AccountModal = AccountModal;
+exports.AuthScreen = AuthScreen;
 exports.AccountCard = AccountCard;
 const jsx_runtime_1 = require("react/jsx-runtime");
 const react_1 = require("react");
@@ -20537,14 +20620,18 @@ const store_1 = require("../store");
 const ui_1 = require("./ui");
 const account_1 = require("../lib/account");
 Object.defineProperty(exports, "syncProfile", { enumerable: true, get: function () { return account_1.syncProfile; } });
+const storage_1 = require("../lib/storage");
 const siteConfig_1 = require("../lib/siteConfig");
 function AccountModal() {
     const st = (0, store_1.useStore)();
     return (0, jsx_runtime_1.jsx)(ui_1.Modal, { open: st.accountOpen, onClose: st.closeAccount, title: st.user ? 'החשבון שלי' : 'כניסה / הרשמה ל-CashUp', children: st.accountOpen && (st.user ? (0, jsx_runtime_1.jsx)(Profile, {}) : (0, jsx_runtime_1.jsx)(AuthForm, {})) });
 }
+function AuthScreen() {
+    return (0, jsx_runtime_1.jsxs)("div", { className: "auth-screen", children: [(0, jsx_runtime_1.jsxs)("div", { className: "auth-card", children: [(0, jsx_runtime_1.jsxs)("div", { className: "auth-brand", children: [(0, jsx_runtime_1.jsx)("img", { src: "img/icon-192.png", alt: "" }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "CashUp" }), (0, jsx_runtime_1.jsx)("small", { children: "\u05D4\u05D3\u05E8\u05DA \u05DC\u05D7\u05D5\u05E4\u05E9 \u05DB\u05DC\u05DB\u05DC\u05D9" })] })] }), (0, jsx_runtime_1.jsx)(AuthForm, {})] }), (0, jsx_runtime_1.jsxs)("p", { className: "muted small center", children: ["\u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05D5\u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8. \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D4\u05DE\u05D9\u05D9\u05DC, \u05D4\u05E9\u05DD \u05D5\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05DB\u05DC\u05DC\u05D9\u05EA. ", (0, jsx_runtime_1.jsx)("a", { href: "privacy.html", target: "_blank", rel: "noopener", children: "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA" }), " \u00B7 ", (0, jsx_runtime_1.jsx)("a", { href: "accessibility.html", target: "_blank", rel: "noopener", children: "\u05E0\u05D2\u05D9\u05E9\u05D5\u05EA" })] })] });
+}
 function AuthForm() {
-    const st = (0, store_1.useStore)();
-    const [mode, setMode] = (0, react_1.useState)('signup');
+    const [mode, setMode] = (0, react_1.useState)(() => ((0, account_1.lastUser)() ? 'login' : 'signup'));
+    const [pw2, setPw2] = (0, react_1.useState)('');
     const [email, setEmail] = (0, react_1.useState)('');
     const [pw, setPw] = (0, react_1.useState)('');
     const [name, setName] = (0, react_1.useState)('');
@@ -20559,13 +20646,6 @@ function AuthForm() {
     catch (e) {
         setErr((0, account_1.authErrorHe)(e));
     } setBusy(false); };
-    const google = () => {
-        if (mode === 'signup' && !terms) {
-            setErr('כדי להירשם יש לאשר את תנאי השימוש ומדיניות הפרטיות');
-            return;
-        }
-        run(async () => { st.setPendingConsent(consent); await (0, account_1.signInGoogle)(); });
-    };
     const submit = () => {
         if (!(0, siteConfig_1.validEmail)(email)) {
             setErr('נא להזין כתובת מייל תקינה');
@@ -20573,35 +20653,44 @@ function AuthForm() {
         }
         if (mode === 'reset')
             return run(async () => { await (0, account_1.resetPassword)(email.trim()); setMsg('שלחנו מייל לאיפוס הסיסמה 📬'); });
-        if (pw.length < 6) {
-            setErr('סיסמה – לפחות 6 תווים');
-            return;
-        }
         if (mode === 'signup') {
+            const p = (0, account_1.passwordProblem)(pw);
+            if (p) {
+                setErr(p);
+                return;
+            }
+            if (pw !== pw2) {
+                setErr('הסיסמאות לא זהות');
+                return;
+            }
             if (!terms) {
                 setErr('כדי להירשם יש לאשר את תנאי השימוש ומדיניות הפרטיות');
                 return;
             }
-            return run(async () => { st.setPendingConsent(consent); await (0, account_1.signUpEmail)(email.trim(), pw, name.trim()); });
+            return run(async () => { (0, account_1.setPendingSignup)({ marketingConsent: consent, termsVersion: account_1.TERMS_VERSION, termsAcceptedAt: new Date().toISOString() }); await (0, account_1.signUpEmail)(email.trim(), pw, name.trim()); });
+        }
+        if (!pw) {
+            setErr('נא להזין סיסמה');
+            return;
         }
         return run(async () => { await (0, account_1.signInEmail)(email.trim(), pw); });
     };
-    return (0, jsx_runtime_1.jsxs)("div", { className: "auth", children: [(0, jsx_runtime_1.jsx)("div", { className: "auth-tabs", children: [['signup', 'הרשמה'], ['login', 'כניסה']].map(([k, l]) => (0, jsx_runtime_1.jsx)("button", { type: "button", className: mode === k ? 'on' : '', onClick: () => { setMode(k); setErr(''); setMsg(''); }, children: l }, k)) }), (0, jsx_runtime_1.jsx)("p", { className: "muted small", children: "\uD83D\uDD12 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D4\u05DE\u05D9\u05D9\u05DC, \u05D4\u05E9\u05DD \u05D5\u05D4\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05D1\u05DE\u05E9\u05D7\u05E7. \u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05D5\u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D1\u05D8\u05DC\u05E4\u05D5\u05DF." }), mode !== 'reset' && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("button", { className: "google-btn", onClick: google, disabled: busy, children: [(0, jsx_runtime_1.jsxs)("svg", { viewBox: "0 0 48 48", width: "22", height: "22", "aria-hidden": "true", children: [(0, jsx_runtime_1.jsx)("path", { fill: "#FFC107", d: "M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z" }), (0, jsx_runtime_1.jsx)("path", { fill: "#FF3D00", d: "M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" }), (0, jsx_runtime_1.jsx)("path", { fill: "#4CAF50", d: "M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" }), (0, jsx_runtime_1.jsx)("path", { fill: "#1976D2", d: "M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.3-.4-3.5z" })] }), mode === 'signup' ? 'הרשמה עם Google' : 'כניסה עם Google'] }), (0, jsx_runtime_1.jsx)("div", { className: "or", children: (0, jsx_runtime_1.jsx)("span", { children: "\u05D0\u05D5 \u05E2\u05DD \u05DE\u05D9\u05D9\u05DC" }) })] }), (0, jsx_runtime_1.jsxs)("div", { className: "form-grid", children: [mode === 'signup' && (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E9\u05DD (\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4)", children: (0, jsx_runtime_1.jsx)("input", { className: "input", value: name, onChange: (e) => setName(e.target.value), autoComplete: "name" }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05DE\u05D9\u05D9\u05DC", children: (0, jsx_runtime_1.jsx)("input", { className: "input", type: "email", dir: "ltr", value: email, onChange: (e) => setEmail(e.target.value), autoComplete: "email" }) }), mode !== 'reset' && (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E1\u05D9\u05E1\u05DE\u05D4 (\u05DC\u05E4\u05D7\u05D5\u05EA 6 \u05EA\u05D5\u05D5\u05D9\u05DD)", children: (0, jsx_runtime_1.jsx)("input", { className: "input", type: "password", dir: "ltr", value: pw, onChange: (e) => setPw(e.target.value), autoComplete: mode === 'signup' ? 'new-password' : 'current-password', onKeyDown: (e) => e.key === 'Enter' && submit() }) }), mode === 'signup' && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("label", { className: "check-row consent", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: terms, onChange: (e) => setTerms(e.target.checked) }), (0, jsx_runtime_1.jsxs)("span", { children: ["\u05E7\u05E8\u05D0\u05EA\u05D9 \u05D5\u05D0\u05E0\u05D9 \u05DE\u05E1\u05DB\u05D9\u05DD/\u05D4 \u05DC", (0, jsx_runtime_1.jsx)("a", { href: "terms.html", target: "_blank", rel: "noopener", children: "\u05EA\u05E0\u05D0\u05D9 \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9" }), " \u05D5\u05DC", (0, jsx_runtime_1.jsx)("a", { href: "privacy.html", target: "_blank", rel: "noopener", children: "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA" }), " *"] })] }), (0, jsx_runtime_1.jsxs)("label", { className: "check-row", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: consent, onChange: (e) => setConsent(e.target.checked) }), (0, jsx_runtime_1.jsx)("span", { children: "\u05D0\u05E9\u05DE\u05D7 \u05DC\u05E7\u05D1\u05DC \u05E2\u05D3\u05DB\u05D5\u05E0\u05D9\u05DD \u05D5\u05D4\u05E6\u05E2\u05D5\u05EA \u05D1\u05DE\u05D9\u05D9\u05DC (\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4, \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D1\u05D8\u05DC \u05D1\u05DB\u05DC \u05E2\u05EA)" })] })] })] }), err && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-warn", role: "alert", children: err }), msg && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-ok", children: msg }), (0, jsx_runtime_1.jsxs)("div", { className: "row-between", style: { marginTop: 14 }, children: [mode === 'login' ? (0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: () => { setMode('reset'); setErr(''); }, children: "\u05E9\u05DB\u05D7\u05EA\u05D9 \u05E1\u05D9\u05E1\u05DE\u05D4" }) : mode === 'reset' ? (0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: () => setMode('login'), children: "\u05D7\u05D6\u05E8\u05D4 \u05DC\u05DB\u05E0\u05D9\u05E1\u05D4" }) : (0, jsx_runtime_1.jsx)("span", {}), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "gold", big: true, onClick: submit, disabled: busy, children: busy ? 'רגע…' : mode === 'signup' ? 'יצירת חשבון' : mode === 'login' ? 'כניסה' : 'שליחת מייל איפוס' })] })] });
+    return (0, jsx_runtime_1.jsxs)("div", { className: "auth", children: [(0, jsx_runtime_1.jsx)("div", { className: "auth-tabs", children: [['signup', 'הרשמה'], ['login', 'כניסה']].map(([k, l]) => (0, jsx_runtime_1.jsx)("button", { type: "button", className: mode === k ? 'on' : '', onClick: () => { setMode(k); setErr(''); setMsg(''); }, children: l }, k)) }), mode === 'signup' && (0, jsx_runtime_1.jsx)("p", { className: "muted small", children: "\u05DB\u05D3\u05D9 \u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05D1-CashUp \u05E6\u05E8\u05D9\u05DA \u05D7\u05E9\u05D1\u05D5\u05DF \u05D0\u05D9\u05E9\u05D9. \u05D4\u05D4\u05E8\u05E9\u05DE\u05D4 \u05DC\u05D5\u05E7\u05D7\u05EA \u05D7\u05E6\u05D9 \u05D3\u05E7\u05D4." }), (0, jsx_runtime_1.jsxs)("div", { className: "form-grid", children: [mode === 'signup' && (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05E9\u05DD (\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4)", children: (0, jsx_runtime_1.jsx)("input", { className: "input", value: name, onChange: (e) => setName(e.target.value), autoComplete: "name" }) }), (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05DE\u05D9\u05D9\u05DC", children: (0, jsx_runtime_1.jsx)("input", { className: "input", type: "email", dir: "ltr", value: email, onChange: (e) => setEmail(e.target.value), autoComplete: "email" }) }), mode !== 'reset' && (0, jsx_runtime_1.jsx)(ui_1.Field, { label: mode === 'signup' ? 'סיסמה (לפחות 8 תווים, אותיות וספרות)' : 'סיסמה', children: (0, jsx_runtime_1.jsx)("input", { className: "input", type: "password", dir: "ltr", value: pw, onChange: (e) => setPw(e.target.value), autoComplete: mode === 'signup' ? 'new-password' : 'current-password', onKeyDown: (e) => e.key === 'Enter' && submit() }) }), mode === 'signup' && (0, jsx_runtime_1.jsx)(ui_1.Field, { label: "\u05D0\u05D9\u05DE\u05D5\u05EA \u05E1\u05D9\u05E1\u05DE\u05D4", children: (0, jsx_runtime_1.jsx)("input", { className: "input", type: "password", dir: "ltr", value: pw2, onChange: (e) => setPw2(e.target.value), autoComplete: "new-password", onKeyDown: (e) => e.key === 'Enter' && submit() }) }), mode === 'signup' && (0, jsx_runtime_1.jsxs)(jsx_runtime_1.Fragment, { children: [(0, jsx_runtime_1.jsxs)("label", { className: "check-row consent", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: terms, onChange: (e) => setTerms(e.target.checked) }), (0, jsx_runtime_1.jsxs)("span", { children: ["\u05E7\u05E8\u05D0\u05EA\u05D9 \u05D5\u05D0\u05E0\u05D9 \u05DE\u05E1\u05DB\u05D9\u05DD/\u05D4 \u05DC", (0, jsx_runtime_1.jsx)("a", { href: "terms.html", target: "_blank", rel: "noopener", children: "\u05EA\u05E0\u05D0\u05D9 \u05D4\u05E9\u05D9\u05DE\u05D5\u05E9" }), " \u05D5\u05DC", (0, jsx_runtime_1.jsx)("a", { href: "privacy.html", target: "_blank", rel: "noopener", children: "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05D5\u05EA" }), " *"] })] }), (0, jsx_runtime_1.jsxs)("label", { className: "check-row", children: [(0, jsx_runtime_1.jsx)("input", { type: "checkbox", checked: consent, onChange: (e) => setConsent(e.target.checked) }), (0, jsx_runtime_1.jsx)("span", { children: "\u05D0\u05E9\u05DE\u05D7 \u05DC\u05E7\u05D1\u05DC \u05E2\u05D3\u05DB\u05D5\u05E0\u05D9\u05DD \u05D5\u05D4\u05E6\u05E2\u05D5\u05EA \u05D1\u05DE\u05D9\u05D9\u05DC (\u05DC\u05D0 \u05D7\u05D5\u05D1\u05D4, \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D1\u05D8\u05DC \u05D1\u05DB\u05DC \u05E2\u05EA)" })] })] })] }), err && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-warn", role: "alert", children: err }), msg && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-ok", children: msg }), (0, jsx_runtime_1.jsxs)("div", { className: "row-between", style: { marginTop: 14 }, children: [mode === 'login' ? (0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: () => { setMode('reset'); setErr(''); }, children: "\u05E9\u05DB\u05D7\u05EA\u05D9 \u05E1\u05D9\u05E1\u05DE\u05D4" }) : mode === 'reset' ? (0, jsx_runtime_1.jsx)("button", { className: "link-btn", onClick: () => setMode('login'), children: "\u05D7\u05D6\u05E8\u05D4 \u05DC\u05DB\u05E0\u05D9\u05E1\u05D4" }) : (0, jsx_runtime_1.jsx)("span", {}), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "gold", big: true, onClick: submit, disabled: busy, children: busy ? 'רגע…' : mode === 'signup' ? 'יצירת חשבון' : mode === 'login' ? 'כניסה' : 'שליחת מייל איפוס' })] })] });
 }
 function Profile() {
     const st = (0, store_1.useStore)();
     const u = st.user;
     const [confirmDel, setConfirmDel] = (0, react_1.useState)(false);
     const [err, setErr] = (0, react_1.useState)('');
-    return (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsxs)("div", { className: "profile-head", children: [(0, jsx_runtime_1.jsx)("span", { className: "avatar-lg", children: (u.name || u.email || '?').slice(0, 1).toUpperCase() }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: u.name || 'משתמש/ת CashUp' }), (0, jsx_runtime_1.jsx)("p", { className: "muted small", dir: "ltr", style: { textAlign: 'right' }, children: u.email })] })] }), (0, jsx_runtime_1.jsx)("p", { className: "small muted", children: "\uD83D\uDD12 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D4\u05DE\u05D9\u05D9\u05DC, \u05D4\u05E9\u05DD, \u05EA\u05D0\u05E8\u05D9\u05DB\u05D9 \u05DB\u05E0\u05D9\u05E1\u05D4 \u05D5\u05D4\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05D1\u05DE\u05E9\u05D7\u05E7 (\u05D3\u05E8\u05D2\u05D4 \u05D5\u05E9\u05DC\u05D1 \u05D1\u05D3\u05E8\u05DA \u05DC\u05D7\u05D5\u05E4\u05E9). \u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05D5\u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4. \u05DB\u05D3\u05D9 \u05DC\u05E2\u05D1\u05D5\u05E8 \u05DC\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D0\u05D7\u05E8 \u2013 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D5\u05E9\u05D7\u05D6\u05D5\u05E8 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA." }), err && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-warn", children: err }), (0, jsx_runtime_1.jsxs)("div", { className: "row-gap wrap", style: { marginTop: 12 }, children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: async () => { await (0, account_1.signOut)(); st.closeAccount(); st.toast('התנתקתם מהחשבון'); }, children: "\u05D4\u05EA\u05E0\u05EA\u05E7\u05D5\u05EA" }), !confirmDel ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => setConfirmDel(true), children: "\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF" })
+    return (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsxs)("div", { className: "profile-head", children: [(0, jsx_runtime_1.jsx)("span", { className: "avatar-lg", children: (u.name || u.email || '?').slice(0, 1).toUpperCase() }), (0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: u.name || 'משתמש/ת CashUp' }), (0, jsx_runtime_1.jsx)("p", { className: "muted small", dir: "ltr", style: { textAlign: 'right' }, children: u.email })] })] }), (0, jsx_runtime_1.jsx)("p", { className: "small muted", children: "\uD83D\uDD12 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D4\u05DE\u05D9\u05D9\u05DC, \u05D4\u05E9\u05DD, \u05EA\u05D0\u05E8\u05D9\u05DB\u05D9 \u05DB\u05E0\u05D9\u05E1\u05D4 \u05D5\u05D4\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05D1\u05DE\u05E9\u05D7\u05E7 (\u05D3\u05E8\u05D2\u05D4 \u05D5\u05E9\u05DC\u05D1 \u05D1\u05D3\u05E8\u05DA \u05DC\u05D7\u05D5\u05E4\u05E9). \u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA \u05D5\u05D4\u05E1\u05DB\u05D5\u05DE\u05D9\u05DD \u05E0\u05E9\u05D0\u05E8\u05D9\u05DD \u05E8\u05E7 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4, \u05D5\u05E0\u05E4\u05EA\u05D7\u05D9\u05DD \u05E8\u05E7 \u05D0\u05D7\u05E8\u05D9 \u05DB\u05E0\u05D9\u05E1\u05D4 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF. \u05DB\u05D3\u05D9 \u05DC\u05E2\u05D1\u05D5\u05E8 \u05DC\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D0\u05D7\u05E8 \u2013 \u05D2\u05D9\u05D1\u05D5\u05D9 \u05D5\u05E9\u05D7\u05D6\u05D5\u05E8 \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA." }), err && (0, jsx_runtime_1.jsx)("div", { className: "alert alert-warn", children: err }), (0, jsx_runtime_1.jsxs)("div", { className: "row-gap wrap", style: { marginTop: 12 }, children: [(0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: async () => { await (0, account_1.signOut)(); }, children: "\u05D4\u05EA\u05E0\u05EA\u05E7\u05D5\u05EA" }), confirmDel && (0, jsx_runtime_1.jsx)("p", { className: "small warn-text span2", children: "\u05D4\u05DE\u05D7\u05D9\u05E7\u05D4 \u05EA\u05DE\u05D7\u05E7 \u05D0\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D5\u05D0\u05EA \u05DB\u05DC \u05D4\u05D4\u05D5\u05E6\u05D0\u05D5\u05EA, \u05D4\u05D9\u05E2\u05D3\u05D9\u05DD \u05D5\u05D4\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05E9\u05E0\u05E9\u05DE\u05E8\u05D5 \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4. \u05DC\u05D0 \u05E0\u05D9\u05EA\u05DF \u05DC\u05E9\u05D7\u05D6\u05E8 \u2013 \u05D0\u05DD \u05EA\u05E8\u05E6\u05D5, \u05D2\u05D1\u05D5 \u05E7\u05D5\u05D3\u05DD \u05D1\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA." }), !confirmDel ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => setConfirmDel(true), children: "\u05DE\u05D7\u05D9\u05E7\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF" })
                         : (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "danger", onClick: async () => { try {
                                 await (0, account_1.deleteAccount)(u);
-                                st.closeAccount();
-                                st.toast('החשבון נמחק. הנתונים במכשיר נשארו.');
+                                new storage_1.LocalRepository((0, storage_1.userKey)(u.uid)).clear();
+                                (0, account_1.signOut)();
                             }
                             catch (e) {
                                 setErr((0, account_1.authErrorHe)(e));
-                            } }, children: "\u05DB\u05DF, \u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05DC\u05E6\u05DE\u05D9\u05EA\u05D5\u05EA" })] })] });
+                            } }, children: "\u05DB\u05DF, \u05DC\u05DE\u05D7\u05D5\u05E7 \u05D0\u05EA \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05D5\u05D0\u05EA \u05DB\u05DC \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD" })] })] });
 }
 function AccountCard() {
     const st = (0, store_1.useStore)();
@@ -20612,7 +20701,7 @@ function AccountCard() {
             : (0, jsx_runtime_1.jsxs)("div", { className: "row-between", children: [(0, jsx_runtime_1.jsx)("span", { className: "muted", children: "\u05E2\u05D5\u05D3 \u05DC\u05D0 \u05E0\u05DB\u05E0\u05E1\u05EA\u05DD \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF. \u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D5\u05DE\u05E8 \u05D0\u05EA \u05D4\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05E9\u05DC\u05DB\u05DD \u05D5\u05D0\u05EA \u05D4\u05E4\u05E8\u05D8\u05D9\u05DD \u05DC\u05D9\u05E6\u05D9\u05E8\u05EA \u05E7\u05E9\u05E8." }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "gold", onClick: st.openAccount, children: "\u05DB\u05E0\u05D9\u05E1\u05D4 / \u05D4\u05E8\u05E9\u05DE\u05D4" })] }) });
 }
 
-},{"react/jsx-runtime":1,"react":7,"../store":12,"./ui":23,"../lib/account":22,"../lib/siteConfig":29}];
+},{"react/jsx-runtime":1,"react":7,"../store":12,"./ui":23,"../lib/account":22,"../lib/storage":13,"../lib/siteConfig":29}];
 defs[29]=[function(module,exports,require){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -22176,7 +22265,7 @@ function SettingsPage() {
                                     } }, 100); }, label: "\u05D4\u05D3\u05E8\u05DB\u05D4 \u05E7\u05D5\u05DC\u05D9\u05EA", desc: "\u05D4\u05E7\u05E8\u05D0\u05EA \u05E9\u05DE\u05D5\u05EA \u05D4\u05DE\u05E1\u05DB\u05D9\u05DD \u05D5\u05D4\u05D5\u05D3\u05E2\u05D5\u05EA \u05D0\u05D9\u05E9\u05D5\u05E8 (\u05EA\u05DC\u05D5\u05D9 \u05D1\u05EA\u05DE\u05D9\u05DB\u05EA \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA)." })] }), (0, jsx_runtime_1.jsxs)(ui_1.Card, { title: "\uD83D\uDD14 \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA", children: [(0, jsx_runtime_1.jsx)("p", { className: "muted small", children: "\u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05DE\u05D5\u05E4\u05D9\u05E2\u05D5\u05EA \u05D1\u05E4\u05E2\u05DE\u05D5\u05DF \u05DC\u05DE\u05E2\u05DC\u05D4. \u05D4\u05DF \u05DE\u05D1\u05D5\u05E1\u05E1\u05D5\u05EA \u05E2\u05DC \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD, \u05DC\u05D0 \u05D7\u05D5\u05D6\u05E8\u05D5\u05EA \u05D0\u05D7\u05E8\u05D9 \u05E9\u05D4\u05E1\u05EA\u05E8\u05EA\u05DD \u05D0\u05D5\u05EA\u05DF, \u05D5\u05DE\u05D5\u05D2\u05D1\u05DC\u05D5\u05EA \u05D1\u05DB\u05DE\u05D5\u05EA." }), (0, jsx_runtime_1.jsx)(ui_1.Segmented, { value: set.notifFreq, label: "\u05EA\u05D3\u05D9\u05E8\u05D5\u05EA \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA", onChange: v => upd(d => { d.notifFreq = v; }, 'הגדרת ההתראות נשמרה'), options: [{ v: 'off', l: 'כבוי' }, { v: 'low', l: 'מעט (עד 2)' }, { v: 'normal', l: 'רגיל (עד 4)' }] }), s.notif.dismissed.length > 0 && (0, jsx_runtime_1.jsx)("p", { children: (0, jsx_runtime_1.jsxs)("button", { className: "link-btn", onClick: () => st.mutate(d => { d.notif.dismissed = []; }, 'ההתראות שהוסתרו יוכלו להופיע שוב'), children: ["\u05D0\u05D9\u05E4\u05D5\u05E1 \u05D4\u05EA\u05E8\u05D0\u05D5\u05EA \u05E9\u05D4\u05D5\u05E1\u05EA\u05E8\u05D5 (", s.notif.dismissed.length, ")"] }) })] })] }), (0, jsx_runtime_1.jsx)(ui_1.Card, { title: "\uD83C\uDFF7\uFE0F \u05E7\u05D8\u05D2\u05D5\u05E8\u05D9\u05D5\u05EA \u05D5\u05EA\u05E7\u05E6\u05D9\u05D1\u05D9\u05DD", children: (0, jsx_runtime_1.jsx)(Expenses_1.CategoryManager, {}) }), (0, jsx_runtime_1.jsxs)(ui_1.Card, { title: "\uD83C\uDFE6 \u05D7\u05E9\u05D1\u05D5\u05E0\u05D5\u05EA \u05D1\u05E0\u05E7 \u05D5\u05DB\u05E8\u05D8\u05D9\u05E1\u05D9 \u05D0\u05E9\u05E8\u05D0\u05D9", children: [(0, jsx_runtime_1.jsx)("div", { className: "alert alert-info", children: (0, jsx_runtime_1.jsxs)("span", { children: [(0, jsx_runtime_1.jsx)("strong", { children: "\u05E1\u05E0\u05DB\u05E8\u05D5\u05DF \u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9 \u05E2\u05D3\u05D9\u05D9\u05DF \u05DC\u05D0 \u05D6\u05DE\u05D9\u05DF." }), " \u05D1\u05E2\u05EA\u05D9\u05D3 \u05D4\u05D7\u05D9\u05D1\u05D5\u05E8 \u05D9\u05D9\u05E2\u05E9\u05D4 \u05E8\u05E7 \u05D3\u05E8\u05DA ", (0, jsx_runtime_1.jsx)("strong", { children: "\u05E1\u05E4\u05E7 \u05D1\u05E0\u05E7\u05D0\u05D5\u05EA \u05E4\u05EA\u05D5\u05D7\u05D4 \u05DE\u05D5\u05E8\u05E9\u05D4" }), ", \u05E9\u05D1\u05D5 \u05D0\u05EA\u05DD \u05DE\u05D0\u05E9\u05E8\u05D9\u05DD \u05D0\u05EA \u05D4\u05D2\u05D9\u05E9\u05D4 \u05D9\u05E9\u05D9\u05E8\u05D5\u05EA \u05DE\u05D5\u05DC \u05D4\u05D1\u05E0\u05E7. CashUp ", (0, jsx_runtime_1.jsx)("strong", { children: "\u05DC\u05E2\u05D5\u05DC\u05DD \u05DC\u05D0 \u05EA\u05D1\u05E7\u05E9 \u05D0\u05EA \u05E1\u05D9\u05E1\u05DE\u05EA \u05D4\u05D1\u05E0\u05E7 \u05E9\u05DC\u05DB\u05DD" }), " \u05D5\u05DC\u05D0 \u05EA\u05EA\u05D7\u05D1\u05E8 \u05DC\u05D0\u05EA\u05E8\u05D9 \u05D4\u05D1\u05E0\u05E7\u05D9\u05DD \u05D1\u05E2\u05E6\u05DE\u05D4."] }) }), (0, jsx_runtime_1.jsxs)("div", { className: "connect-grid", children: [(0, jsx_runtime_1.jsxs)("div", { className: "connect-box", children: [(0, jsx_runtime_1.jsx)("span", { children: "\uD83C\uDFE6" }), (0, jsx_runtime_1.jsx)("strong", { children: "\u05D7\u05E9\u05D1\u05D5\u05DF \u05D1\u05E0\u05E7" }), (0, jsx_runtime_1.jsx)("small", { children: "\u05D0\u05D9\u05DF \u05E1\u05E4\u05E7 \u05DE\u05D5\u05D2\u05D3\u05E8" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: () => setConnect('bank'), children: "\u05D7\u05D9\u05D1\u05D5\u05E8 \u05D4\u05D3\u05D2\u05DE\u05D4" })] }), (0, jsx_runtime_1.jsxs)("div", { className: "connect-box", children: [(0, jsx_runtime_1.jsx)("span", { children: "\uD83D\uDCB3" }), (0, jsx_runtime_1.jsx)("strong", { children: "\u05DB\u05E8\u05D8\u05D9\u05E1 \u05D0\u05E9\u05E8\u05D0\u05D9" }), (0, jsx_runtime_1.jsx)("small", { children: "\u05D0\u05D9\u05DF \u05E1\u05E4\u05E7 \u05DE\u05D5\u05D2\u05D3\u05E8" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: () => setConnect('card'), children: "\u05D7\u05D9\u05D1\u05D5\u05E8 \u05D4\u05D3\u05D2\u05DE\u05D4" })] })] }), s.connections.length > 0 && (0, jsx_runtime_1.jsx)("div", { className: "conn-list", children: s.connections.map(c => {
                             const n = s.transactions.filter(t => t.connectionId === c.id).length;
                             return ((0, jsx_runtime_1.jsxs)("div", { className: "conn", children: [(0, jsx_runtime_1.jsxs)("div", { children: [(0, jsx_runtime_1.jsx)("strong", { children: c.label }), " ", (0, jsx_runtime_1.jsx)(ui_1.Badge, { tone: "demo", children: "\u05D7\u05D9\u05D1\u05D5\u05E8 \u05D4\u05D3\u05D2\u05DE\u05D4" }), (0, jsx_runtime_1.jsxs)("small", { className: "block muted", children: ["\u05D0\u05D5\u05E9\u05E8 \u05D1-", (0, format_1.dateLabel)(new Date(c.consentAt).toISOString().slice(0, 10)), " \u00B7 ", n, " \u05E8\u05E9\u05D5\u05DE\u05D5\u05EA \u05DE\u05D9\u05D5\u05D1\u05D0\u05D5\u05EA \u00B7 \u05D4\u05E8\u05E9\u05D0\u05D5\u05EA: ", c.scopes.join(', ')] })] }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "danger", onClick: () => setDisc(c), children: "\u05E0\u05D9\u05EA\u05D5\u05E7" })] }, c.id));
-                        }) })] }), (0, jsx_runtime_1.jsxs)(ui_1.Card, { title: "\uD83D\uDD12 \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA \u05D5\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD", children: [(0, jsx_runtime_1.jsxs)("ul", { className: "privacy", children: [(0, jsx_runtime_1.jsxs)("li", { children: ["\u2705 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD ", (0, jsx_runtime_1.jsx)("strong", { children: "\u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4" }), st.cloud ? (0, jsx_runtime_1.jsx)(jsx_runtime_1.Fragment, { children: " \u05D5\u05DE\u05E1\u05D5\u05E0\u05DB\u05E8\u05E0\u05D9\u05DD \u05DC\u05D0\u05D6\u05D5\u05E8 \u05E4\u05E8\u05D8\u05D9 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF Claude \u05E9\u05DC\u05DB\u05DD (\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05E7\u05D1\u05DC\u05D5\u05EA \u05DC\u05D0 \u05DE\u05E1\u05D5\u05E0\u05DB\u05E8\u05E0\u05D5\u05EA)" }) : null, "."] }), (0, jsx_runtime_1.jsx)("li", { children: "\u2705 \u05D0\u05D9\u05DF \u05E9\u05D9\u05EA\u05D5\u05E3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E2\u05DD \u05DE\u05E4\u05E8\u05E1\u05DE\u05D9\u05DD \u05D5\u05D0\u05D9\u05DF \u05DE\u05DB\u05D9\u05E8\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD." }), (0, jsx_runtime_1.jsx)("li", { children: "\u2705 \u05D7\u05E9\u05D1\u05D5\u05DF \u05D4\u05D5\u05D0 \u05E8\u05E9\u05D5\u05EA: \u05D4\u05D5\u05D0 \u05E9\u05D5\u05DE\u05E8 \u05E8\u05E7 \u05DE\u05D9\u05D9\u05DC \u05D5\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA, \u05DC\u05D0 \u05E1\u05DB\u05D5\u05DE\u05D9\u05DD. \u05D0\u05D9\u05DF \u05E9\u05E8\u05EA \u05E9\u05DE\u05D7\u05D6\u05D9\u05E7 \u05D0\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D4\u05E4\u05D9\u05E0\u05E0\u05E1\u05D9\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD." }), (0, jsx_runtime_1.jsx)("li", { children: "\u2139\uFE0F \u05DE\u05D7\u05D9\u05E7\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF (\u05D0\u05D5 \u05D4\u05D7\u05DC\u05E4\u05EA \u05DE\u05DB\u05E9\u05D9\u05E8) \u05DE\u05D5\u05D7\u05E7\u05EA \u05D0\u05EA \u05D4\u05DE\u05D9\u05D3\u05E2 \u2013 \u05DC\u05DB\u05DF \u05DB\u05D3\u05D0\u05D9 \u05DC\u05D2\u05D1\u05D5\u05EA \u05DE\u05D3\u05D9 \u05E4\u05E2\u05DD." }), !window.claude && (0, jsx_runtime_1.jsxs)("li", { children: ["\uD83D\uDCC4 ", (0, jsx_runtime_1.jsx)("a", { href: "privacy.html", target: "_blank", rel: "noopener", children: "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA" }), " \u00B7 ", (0, jsx_runtime_1.jsx)("a", { href: "terms.html", target: "_blank", rel: "noopener", children: "\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9" })] })] }), st.cloud && (0, jsx_runtime_1.jsx)(ui_1.Toggle, { checked: set.cloudSync, onChange: v => upd(d => { d.cloudSync = v; }, v ? 'הסנכרון הופעל' : 'הסנכרון הופסק (הנתונים במכשיר נשמרים)'), label: "\u05E1\u05E0\u05DB\u05E8\u05D5\u05DF \u05E4\u05E8\u05D8\u05D9 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF Claude", desc: "\u05DE\u05D0\u05E4\u05E9\u05E8 \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D2\u05DD \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D0\u05D7\u05E8." }), (0, jsx_runtime_1.jsxs)("div", { className: "row-gap wrap", children: [s.demoLoaded || s.transactions.some(t => t.isDemo) ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: () => st.mutate(d => (0, store_1.clearDemo)(d), 'נתוני ההדגמה נמחקו'), children: "\u05DE\u05D7\u05D9\u05E7\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D4\u05D3\u05D2\u05DE\u05D4" })
+                        }) })] }), (0, jsx_runtime_1.jsxs)(ui_1.Card, { title: "\uD83D\uDD12 \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA \u05D5\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD", children: [(0, jsx_runtime_1.jsxs)("ul", { className: "privacy", children: [(0, jsx_runtime_1.jsxs)("li", { children: ["\u2705 \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E0\u05E9\u05DE\u05E8\u05D9\u05DD ", (0, jsx_runtime_1.jsx)("strong", { children: "\u05D1\u05D3\u05E4\u05D3\u05E4\u05DF \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D4\u05D6\u05D4" }), st.cloud ? (0, jsx_runtime_1.jsx)(jsx_runtime_1.Fragment, { children: " \u05D5\u05DE\u05E1\u05D5\u05E0\u05DB\u05E8\u05E0\u05D9\u05DD \u05DC\u05D0\u05D6\u05D5\u05E8 \u05E4\u05E8\u05D8\u05D9 \u05D1\u05D7\u05E9\u05D1\u05D5\u05DF Claude \u05E9\u05DC\u05DB\u05DD (\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA \u05E7\u05D1\u05DC\u05D5\u05EA \u05DC\u05D0 \u05DE\u05E1\u05D5\u05E0\u05DB\u05E8\u05E0\u05D5\u05EA)" }) : null, "."] }), (0, jsx_runtime_1.jsx)("li", { children: "\u2705 \u05D0\u05D9\u05DF \u05E9\u05D9\u05EA\u05D5\u05E3 \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05E2\u05DD \u05DE\u05E4\u05E8\u05E1\u05DE\u05D9\u05DD \u05D5\u05D0\u05D9\u05DF \u05DE\u05DB\u05D9\u05E8\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9\u05DD." }), (0, jsx_runtime_1.jsx)("li", { children: "\u2705 \u05D4\u05D7\u05E9\u05D1\u05D5\u05DF \u05E9\u05D5\u05DE\u05E8 \u05E8\u05E7 \u05DE\u05D9\u05D9\u05DC \u05D5\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA, \u05DC\u05D0 \u05E1\u05DB\u05D5\u05DE\u05D9\u05DD. \u05D0\u05D9\u05DF \u05E9\u05E8\u05EA \u05E9\u05DE\u05D7\u05D6\u05D9\u05E7 \u05D0\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D4\u05E4\u05D9\u05E0\u05E0\u05E1\u05D9\u05D9\u05DD \u05E9\u05DC\u05DB\u05DD." }), (0, jsx_runtime_1.jsx)("li", { children: "\u2139\uFE0F \u05DE\u05D7\u05D9\u05E7\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D3\u05E4\u05D3\u05E4\u05DF (\u05D0\u05D5 \u05D4\u05D7\u05DC\u05E4\u05EA \u05DE\u05DB\u05E9\u05D9\u05E8) \u05DE\u05D5\u05D7\u05E7\u05EA \u05D0\u05EA \u05D4\u05DE\u05D9\u05D3\u05E2 \u2013 \u05DC\u05DB\u05DF \u05DB\u05D3\u05D0\u05D9 \u05DC\u05D2\u05D1\u05D5\u05EA \u05DE\u05D3\u05D9 \u05E4\u05E2\u05DD." }), !window.claude && (0, jsx_runtime_1.jsxs)("li", { children: ["\uD83D\uDCC4 ", (0, jsx_runtime_1.jsx)("a", { href: "privacy.html", target: "_blank", rel: "noopener", children: "\u05DE\u05D3\u05D9\u05E0\u05D9\u05D5\u05EA \u05E4\u05E8\u05D8\u05D9\u05D5\u05EA" }), " \u00B7 ", (0, jsx_runtime_1.jsx)("a", { href: "terms.html", target: "_blank", rel: "noopener", children: "\u05EA\u05E0\u05D0\u05D9 \u05E9\u05D9\u05DE\u05D5\u05E9" })] })] }), st.cloud && (0, jsx_runtime_1.jsx)(ui_1.Toggle, { checked: set.cloudSync, onChange: v => upd(d => { d.cloudSync = v; }, v ? 'הסנכרון הופעל' : 'הסנכרון הופסק (הנתונים במכשיר נשמרים)'), label: "\u05E1\u05E0\u05DB\u05E8\u05D5\u05DF \u05E4\u05E8\u05D8\u05D9 \u05DC\u05D7\u05E9\u05D1\u05D5\u05DF Claude", desc: "\u05DE\u05D0\u05E4\u05E9\u05E8 \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05EA \u05D4\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD \u05D2\u05DD \u05D1\u05DE\u05DB\u05E9\u05D9\u05E8 \u05D0\u05D7\u05E8." }), (0, jsx_runtime_1.jsxs)("div", { className: "row-gap wrap", children: [s.demoLoaded || s.transactions.some(t => t.isDemo) ? (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "soft", onClick: () => st.mutate(d => (0, store_1.clearDemo)(d), 'נתוני ההדגמה נמחקו'), children: "\u05DE\u05D7\u05D9\u05E7\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D4\u05D3\u05D2\u05DE\u05D4" })
                                 : (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", onClick: () => st.mutate(d => { const demo = (0, demo_1.buildDemo)(); d.transactions.push(...demo.transactions); d.receipts.push(...demo.receipts); d.goals.push(...demo.goals); d.alternatives.push(...demo.alternatives); d.debts.push(...demo.debts); d.demoLoaded = true; }, 'נתוני הדגמה נטענו'), children: "\u05D8\u05E2\u05D9\u05E0\u05EA \u05E0\u05EA\u05D5\u05E0\u05D9 \u05D4\u05D3\u05D2\u05DE\u05D4" }), (0, jsx_runtime_1.jsx)(ui_1.Btn, { kind: "ghost", icon: "download", onClick: async () => { const data = JSON.stringify({ ...s, receipts: s.receipts.map(r => ({ ...r, image: undefined })) }, null, 1); const r = await (0, integrations_1.saveFile)('cashup-backup.json', data, 'application/json'); st.mutate(d => { d.game.stats.exports = (d.game.stats.exports || 0) + 1; }); if (r !== 'saved')
                                     setJson(data);
                                 else
