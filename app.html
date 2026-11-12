@@ -19905,6 +19905,8 @@ function authErrorHe(e) {
         return 'כבר קיים חשבון עם המייל הזה – נסו להתחבר';
     if (c.includes('weak-password'))
         return 'הסיסמה חלשה מדי – לפחות 8 תווים, עם אותיות וספרות';
+    if (c.includes('configuration-not-found') || /CONFIGURATION_NOT_FOUND/.test(String(e?.message)))
+        return 'מערכת החשבונות עוד לא הופעלה. מנהל האתר צריך להפעיל אותה ב-Firebase (Authentication → Get started → Email/Password)';
     if (c.includes('operation-not-allowed'))
         return 'ההרשמה במייל וסיסמה עוד לא הופעלה (Firebase → Authentication → Sign-in method → Email/Password)';
     if (c.includes('network-request-failed'))
@@ -19919,7 +19921,7 @@ function authErrorHe(e) {
         return 'הכתובת עוד לא אושרה בהגדרות ההתחברות (Firebase → Authentication → Authorized domains)';
     if (c.includes('requires-recent-login'))
         return 'מטעמי אבטחה – התנתקו והתחברו שוב, ואז נסו שוב';
-    return 'משהו השתבש. נסו שוב';
+    return 'משהו השתבש. נסו שוב' + (c ? ` (קוד: ${c.replace('auth/', '')})` : '');
 }
 
 },{"./game":15,"./freedom":18,"./format":17}];
